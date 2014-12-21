@@ -10,19 +10,19 @@ def create_list_msg (list_of_files):
 
     for f in list_of_files :
         #print 'before' + list_msg
-        list_msg += '\n' + f 
+        list_msg += '\n' + f
         #print 'after' + list_msg
     return list_msg
 
 def send_message (message):
-	try :
-	    #Set the whole string
-	    s.sendall(message)
-	except socket.error:
-	    #Send failed
-	    print 'Send failed'
-	    sys.exit()
-	time.sleep( 1 )
+    try :
+        #Set the whole string
+        s.sendall(message)
+    except socket.error:
+        #Send failed
+        print 'Send failed'
+        sys.exit()
+    time.sleep( 1 )
 path = "/home/jim/Desktop/filesclient/" + sys.argv[1]
 print path
 from os import listdir
@@ -39,19 +39,19 @@ try:
 except socket.error:
     print ('Failed to create socket')
     sys.exit()
-     
+
 print ('Socket Created')
- 
+
 host = 'localhost'
 port = 5000
- 
+
 try:
     remote_ip = socket.gethostbyname( host )
 except socket.gaierror:
     #could not resolve
     print ('Hostname could not be resolved. Exiting')
     sys.exit()
- 
+
 #Connect to remote server
 while True:
     try:
@@ -73,10 +73,10 @@ send_message(message1)
 send_message(message2)
 
 
- 
+
 print 'Message send successfully'
- 
+
 #Now receive data
 reply = s.recv(4096)
- 
+
 print reply

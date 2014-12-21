@@ -27,7 +27,7 @@ def parse_msg(client, msg):
 
     print 'LIST OF CLIENTS AND THEIR FILES:\n{}'.format(clients)
 
- 
+
 def client_thread(client, conn):
     while True:
         data = conn.recv(1024)
@@ -43,7 +43,7 @@ port = 5000 # Arbitrary non-privileged port
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 print 'Socket created'
- 
+
 #Bind socket to local host and port
 while True:
     try:
@@ -52,11 +52,11 @@ while True:
     except socket.error , msg:
         port = port + 1
         print 'changing port to an available port ' + str(port)
-        
+
         print 'Bind failed. Error Code : ' + str(msg[0]) + ' Message ' + msg[1]
 
 print 'Socket bind complete'
- 
+
 #Start listening on socket
 s.listen(10)
 print 'Socket now listening'
@@ -64,7 +64,7 @@ print 'Socket now listening'
 while True:
     conn, addr = s.accept()
     print ('Connected with ' + addr[0] + ':' + str(addr[1]))
-    
+
     clients[(addr[0], addr[1])] = {"name": "", "files": []}
     print(clients)
     start_new_thread(client_thread, ((addr[0], addr[1]),conn))
