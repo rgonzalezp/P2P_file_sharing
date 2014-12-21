@@ -1,0 +1,7 @@
+# .gitignore
+
+# Vim swap files
+*.swp
+
+# Python byte code files
+*.pyc
