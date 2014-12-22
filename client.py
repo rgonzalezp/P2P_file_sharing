@@ -6,23 +6,25 @@ from __future__ import print_function
 import os
 import socket
 import sys
-import time
-import json
+
+from library.library import configuration_load
+from library.library import configuration_save
 
 
-def create_message(message_type, arguments):
-    if message_type == "HEY":
+def create_message(type_, arguments):
+    if type_ == "HEY":
         id_ = arguments
-        message = "HEY " + id_
+        message = "HEY " + id_ + "\n\0"
 
-    elif message_type == "LIST":
+    elif type_ == "LIST":
         files_list = arguments
         message = "LIST\n"
         for file_ in files_list:
             message += file_ + '\n'
+        message += '\0'
 
-    elif message_type == "OK":
-        message = "OK"
+    elif type_ == "OK":
+        message = "OK\n\0"
 
     else:
         print("error, wrong message type")
@@ -63,6 +65,8 @@ def connection_init(address):
             print()
             break
         except socket.error:
+            # DEBUG
+            print("port {} in use, trying the next one".format(port))
             port += 1
 
     return socket_
@@ -79,22 +83,10 @@ def get_name(configuration_file, configuration):
     configuration_save(configuration_file, configuration)
 
 
-def configuration_load(configuration_file):
-    with open(configuration_file, 'rb') as file_:
-        configuration = json.load(file_)
-
-    return configuration
-
-
-def configuration_save(configuration_file, configuration):
-    with open(configuration_file, 'wb+') as file_:
-        json.dump(configuration, file_, sort_keys=True, indent=4, separators=(',', ': '))
-
-
 def client():
     # check if an argument was passed
     if len(sys.argv) < 2:
-        print("please pass one of the arguments: {1, 2, 3}")
+        print("please pass one of the following arguments: {1, 2, 3}")
         sys.exit()
 
     argument = sys.argv[1]
@@ -120,7 +112,6 @@ def client():
         configuration["server_port"] = 5000
         configuration["listening_port"] = 10000 + (int(argument) * 1000)
         configuration["id"] = "-"
-        configuration["name"] = "-"
         configuration["share_directory"] = "share"
         configuration_save(configuration_file, configuration)
 
@@ -138,7 +129,9 @@ def client():
 
     send_message(server_socket, create_message("LIST", files_list))
 
-    get_name(configuration_file, configuration)
+    if "name" not in configuration:
+        get_name(configuration_file, configuration)
+
     send_message(server_socket, create_message("NAME", configuration["name"]))
 
 
