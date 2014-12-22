@@ -1,5 +1,11 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+
+from __future__ import print_function
 import socket
-from thread import *
+import thread
+
 
 clients = {}
 
@@ -14,18 +20,18 @@ def parse_msg(client, msg):
         #client_port = fields[2]
         pass
     elif msg_id == 'LIST':
-        #print 'Len:' +str(len(msg_lines))
-        #print fields
+        #print('Len:' +str(len(msg_lines)))
+        #print(fields)
         if int(fields[1]) != (len(msg_lines) - 1):
-            print "Error, incompatibility of number of files"
+            print("Error, incompatibility of number of files")
         clients[client]["files"] = msg_lines[1:]
     elif msg_id == 'NAME':
-        print fields
+        print(fields)
         clients[client]["name"] = fields[1]
     else:
         print("this shouldn't have happened")
 
-    print 'LIST OF CLIENTS AND THEIR FILES:\n{}'.format(clients)
+    print('LIST OF CLIENTS AND THEIR FILES:\n{}'.format(clients))
 
 
 def client_thread(client, conn):
@@ -33,38 +39,42 @@ def client_thread(client, conn):
         data = conn.recv(1024)
         parse_msg(client, data)
         print('Data just received:')
-        print (data)
-        print ''
+        print(data)
+        print('')
 
-Clients_List = []
 
-host = ''   # Symbolic name meaning all available interfaces
-port = 5000 # Arbitrary non-privileged port
+def server():
+    host = 'localhost'
+    port = 5000
 
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-print 'Socket created'
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    print('Socket created')
 
-#Bind socket to local host and port
-while True:
-    try:
-        s.bind((host, port))
-        break
-    except socket.error , msg:
-        port = port + 1
-        print 'changing port to an available port ' + str(port)
+    #Bind socket to local host and port
+    while True:
+        try:
+            s.bind((host, port))
+            break
+        except socket.error , msg:
+            port = port + 1
+            print('changing port to an available port ' + str(port))
 
-        print 'Bind failed. Error Code : ' + str(msg[0]) + ' Message ' + msg[1]
+            print('Bind failed. Error Code : ' + str(msg[0]) + ' Message ' + msg[1])
 
-print 'Socket bind complete'
+    print('Socket bind complete')
 
-#Start listening on socket
-s.listen(10)
-print 'Socket now listening'
+    #Start listening on socket
+    s.listen(10)
+    print('Socket now listening')
 
-while True:
-    conn, addr = s.accept()
-    print ('Connected with ' + addr[0] + ':' + str(addr[1]))
+    while True:
+        conn, addr = s.accept()
+        print('Connected with ' + addr[0] + ':' + str(addr[1]))
 
-    clients[(addr[0], addr[1])] = {"name": "", "files": []}
-    print(clients)
-    start_new_thread(client_thread, ((addr[0], addr[1]),conn))
+        clients[(addr[0], addr[1])] = {"name": "", "files": []}
+        print(clients)
+        thread.start_new_thread(client_thread, ((addr[0], addr[1]),conn))
+
+
+if __name__ == "__main__":
+    server()
