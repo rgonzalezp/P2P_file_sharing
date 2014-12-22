@@ -11,9 +11,11 @@ COMMANDS
 '*' :  answer to command
 //////////////////////////
 
-CLIENT
-- HEY 'id'//Gives the id if exists, if not gives '-'
-* WELCOME 'id' //answer to client with :1)existing id or the new unique generated id.
+CLIENT->SERVER
+---
+c: HEY 'id'//Gives the id if exists, if not gives '-'
+s: WELCOME 'id' //answer to client with :1)existing id or the new unique generated id.
+c: OK //confirm for correct command
 
 - CONN client_ip client_port //Gives the ip and the port of the client
 * OK //confirm for correct command
@@ -24,7 +26,16 @@ CLIENT
 - NAME "name" //gives a fake name for usage
 * OK "name"//confirm for correct command
 
-SERVER
-- ID 'id' //Gives the unique id to the client
-* IAM 'id' //answer from client to server
+- GETLIST //ask from server the list
+* FULLLIST filea.txt fileb.txt ... //Send to server the names of the files u got
+- OK //confirm for correct command
 
+
+SERVER->CLIENT
+---
+
+
+CLIENT<->CLIENT
+---
+- SHARE 'filename' 'clientname'
+* OK //confirm for correct command
