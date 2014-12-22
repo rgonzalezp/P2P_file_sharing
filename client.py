@@ -9,6 +9,8 @@ import time
 from os import listdir
 from os.path import isfile, join
 
+host = 'localhost'
+port = 5000
 
 def create_list_msg (list_of_files):
     print(list_of_files)
@@ -22,27 +24,7 @@ def create_list_msg (list_of_files):
     return list_msg
 
 
-def send_message(s, message):
-    try :
-        #Set the whole string
-        s.sendall(message)
-    except socket.error:
-        #Send failed
-        print('Send failed')
-        sys.exit()
-    time.sleep( 1 )
-
-
-def client():
-    host = 'localhost'
-    port = 5000
-
-    path = sys.argv[1]
-    print(path)
-
-    list_of_files = [ f for f in listdir(path) if isfile(join(path,f)) ]
-    print(list_of_files)
-
+def send_message(message):
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         print("INFO OF CLIENT: ")
@@ -61,6 +43,7 @@ def client():
         sys.exit()
 
     #Connect to remote server
+    global port
     while True:
         try:
             s.connect((remote_ip , port))
@@ -71,20 +54,41 @@ def client():
         break
 
     print('Socket Connected to ' + host + ' on ip ' + remote_ip)
+    
+
+    try :
+        #Set the whole string
+        s.sendall(message)
+    except socket.error:
+        #Send failed
+        print('Send failed')
+        sys.exit()
+
+    print('Message send successfully')
+    #Now receive data
+    #reply = s.recv(4096)
+   # print(reply)
+    s.close()
+    print ('Socket Closed')
+
+
+def client():
+
+    path = sys.argv[1]
+    print(path)
+
+    list_of_files = [ f for f in listdir(path) if isfile(join(path,f)) ]
+    print(list_of_files)
+
+    
     message = "HEY 192.168.1.6 {}".format(str(port))
     message1 = create_list_msg(list_of_files)
     print('Your name is ??????')
     message2 = 'NAME ' + raw_input()
-    #Send some data to remote server
-    send_message(s, message)
-    send_message(s, message1)
-    send_message(s, message2)
-    print('Message send successfully')
-
-    #Now receive data
-    reply = s.recv(4096)
-    print(reply)
-
-
+    #Call function
+    send_message(message)
+    send_message(message1)
+    send_message(message2)
+    
 if __name__ == "__main__":
     client()

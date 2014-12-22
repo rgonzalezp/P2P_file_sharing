@@ -11,6 +11,7 @@ clients = {}
 
 
 def parse_msg(client, msg):
+    print (msg)
     msg_lines = msg.split('\n')
     fields = msg_lines[0].split()
     msg_id = fields[0]
