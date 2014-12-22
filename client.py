@@ -7,58 +7,88 @@ import os
 import socket
 import sys
 import time
-import cPickle as pickle
+import json
 
 
-host = 'localhost'
-port = 5000
+def create_message(message_type, arguments):
+    if message_type == "HEY":
+        id_ = arguments
+        message = "HEY " + id_
 
+    elif message_type == "LIST":
+        files_list = arguments
+        message = "LIST\n"
+        for f in files_list:
+            message += f + '\n'
 
-def create_list_msg (list_of_files):
-    print(list_of_files)
-    print(len(list_of_files))
-    list_msg = "LIST {}".format(len(list_of_files))
+    elif message_type == "OK":
+        message = "OK"
 
-    for f in list_of_files :
-        #print('before' + list_msg)
-        list_msg += '\n' + f
-        #print('after' + list_msg)
-    return list_msg
-
-
-def send_message(server, message):
-    server_ip, server_port = server
-
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    except socket.error:
-        print('error, failed to create socket')
+    else:
+        print("error, wrong message type")
         sys.exit()
 
-    offset = 0
+    # DEBUG
+    print("created message:")
+    print(message)
+    print()
+
+    return message
+
+
+def send_message(socket_, message):
+    try:
+        socket_.sendall(message)
+    except socket.error:
+        print('error, socket.sendall')
+        sys.exit()
+
+
+def connection_init(address):
+    ip, port = address
+
+    try:
+        socket_ = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    except socket.error:
+        print('error, socket.socket')
+        sys.exit()
+
+    # TODO
+    # replace with the equivalent code without using an offset
     while True:
         try:
-            s.connect((server_ip, server_port + offset))
+            socket_.connect( (ip, port) )
+            # DEBUG
+            print("connected to peer {}:{}".format(ip, port))
             print()
-            print("DEBUG connected:")
-            print(s)
-            print()
+            break
         except socket.error:
-            offset += 1
-            continue
-        break
+            port += 1
 
-    try:
-        s.sendall(message)
-    except socket.error:
-        print('Send failed')
-        sys.exit()
+    return socket_
 
-    reply = s.recv(1024)
-    print(reply)
 
-    # close the socket
-    s.close()
+def get_name(configuration_file, configuration):
+    print('Specify a user name (press enter for default "{}"): '.format(configuration["id"]))
+    name = raw_input()
+
+    if name == "":
+        name = configuration["id"]
+
+    configuration['name'] = name
+    configuration_save(configuration_file, configuration)
+
+
+def configuration_load(configuration_file):
+    with open(configuration_file, 'rb') as f:
+        configuration = json.load(f)
+
+    return configuration
+
+
+def configuration_save(configuration_file, configuration):
+    with open(configuration_file, 'wb+') as f:
+        json.dump(configuration, f)
 
 
 def client():
@@ -67,42 +97,48 @@ def client():
         print("please pass one of the arguments: {1, 2, 3}")
         sys.exit()
 
+    argument = sys.argv[1]
+
     configuration = {}
 
-    working_directory = sys.argv[1]
-    print("working_directory: " + working_directory)
+    working_directory = argument
+    # DEBUG
+    print("working_directory:")
+    print(working_directory)
+    print()
 
-    configuration_path = working_directory + "/configuration.txt"
-    if os.path.isfile(configuration_path):
-        with open(configuration_path, 'rb') as f:
-            configuration = pickle.load(f)
-        print("configuration: ")
+    configuration_file = working_directory + "/configuration.json"
+
+    if os.path.isfile(configuration_file):
+        configuration = configuration_load(configuration_file)
+        # DEBUG
+        print("configuration:")
         print(configuration)
+        print()
     else:
-        configuration['id'] = '-'
-        with open(configuration_path, 'wb+') as f:
-            pickle.dump(configuration, f)
+        configuration["server_host"] = "localhost"
+        configuration["server_port"] = 5000
+        configuration["listening_port"] = 10000 + (int(argument) * 1000)
+        configuration["id"] = "-"
+        configuration["name"] = "-"
+        configuration["sharing_directory"] = working_directory + "/sharing"
+        configuration_save(configuration_file, configuration)
 
+    files_list = [ f for f in os.listdir(configuration["sharing_directory"]) if os.path.isfile(os.path.join(configuration["sharing_directory"], f)) ]
+    # DEBUG
+    print("files_list:")
+    print(files_list)
+    print()
 
-    list_of_files = [ f for f in os.listdir(working_directory + '/sharing') if os.path.isfile(os.path.join(working_directory + '/sharing', f)) ]
-    print(list_of_files)
+    server_address = (configuration["server_host"], configuration["server_port"])
+    server_socket = connection_init(server_address)
 
+    send_message(server_socket, create_message("HEY", configuration["id"]))
 
-    message = "HEY {}".format(configuration["id"])
+    send_message(server_socket, create_message("LIST", files_list))
 
-    message1 = create_list_msg(list_of_files)
-
-    print('Your name is ??????')
-    nickname = raw_input()
-    configuration['name'] = nickname
-    with open(configuration_path, 'wb+') as f:
-        pickle.dump(configuration, f)
-    message2 = 'NAME ' + configuration["name"]
-
-    # call function
-    send_message(message)
-    send_message(message1)
-    send_message(message2)
+    get_name(configuration_file, configuration)
+    send_message(server_socket, create_message("NAME", configuration["name"]))
 
 
 if __name__ == "__main__":
