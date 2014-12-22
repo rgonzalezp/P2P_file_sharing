@@ -11,19 +11,19 @@ from library.library import configuration_load
 from library.library import configuration_save
 
 
-def create_message(type_, arguments):
-    if type_ == "HEY":
+def create_message(command, arguments):
+    if command == "HEY":
         id_ = arguments
         message = "HEY " + id_ + "\n\0"
 
-    elif type_ == "LIST":
+    elif command == "LIST":
         files_list = arguments
         message = "LIST\n"
         for file_ in files_list:
             message += file_ + '\n'
         message += '\0'
 
-    elif type_ == "OK":
+    elif command == "OK":
         message = "OK\n\0"
 
     else:
@@ -33,7 +33,6 @@ def create_message(type_, arguments):
     # DEBUG
     print("created message:")
     print(message)
-    print()
 
     return message
 
@@ -66,7 +65,7 @@ def connection_init(address):
             break
         except socket.error:
             # DEBUG
-            print("port {} in use, trying the next one".format(port))
+            print("failed to connect to port {}, trying the next one".format(port))
             port += 1
 
     return socket_
@@ -94,19 +93,11 @@ def client():
     configuration = {}
 
     working_directory = argument
-    # DEBUG
-    print("working_directory:")
-    print(working_directory)
-    print()
 
     configuration_file = working_directory + "/configuration.json"
 
     if os.path.isfile(configuration_file):
         configuration = configuration_load(configuration_file)
-        # DEBUG
-        print("configuration:")
-        print(configuration)
-        print()
     else:
         configuration["server_host"] = "localhost"
         configuration["server_port"] = 5000
@@ -114,6 +105,10 @@ def client():
         configuration["id"] = "-"
         configuration["share_directory"] = "share"
         configuration_save(configuration_file, configuration)
+    # DEBUG
+    print("configuration:")
+    print(configuration)
+    print()
 
     share_directory = working_directory + "/" + configuration["share_directory"]
     files_list = [ file_ for file_ in os.listdir(share_directory) if os.path.isfile(os.path.join(share_directory, file_)) ]
