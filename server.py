@@ -35,9 +35,9 @@ def parse_msg(client, msg):
     print('LIST OF CLIENTS AND THEIR FILES:\n{}'.format(clients))
 
 
-def client_thread(client, conn):
+def client_thread(client, client_socket):
     while True:
-        data = conn.recv(1024)
+        data = client_socket.recv(1024)
         parse_msg(client, data)
         print('Data just received:')
         print(data)
@@ -69,12 +69,12 @@ def server():
     print('Socket now listening')
 
     while True:
-        conn, addr = s.accept()
+        client_socket, addr = s.accept()
         print('Connected with ' + addr[0] + ':' + str(addr[1]))
 
-        clients[(addr[0], addr[1])] = {"name": "", "files": []}
+        clients[addr] = {"name": "", "files": []}
         print(clients)
-        thread.start_new_thread(client_thread, ((addr[0], addr[1]),conn))
+        thread.start_new_thread(client_thread, (addr,client_socket))
 
 
 if __name__ == "__main__":
