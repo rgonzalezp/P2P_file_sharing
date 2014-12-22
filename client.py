@@ -55,7 +55,7 @@ def send_message(message):
         break
 
     print('Socket Connected to ' + host + ' on ip ' + remote_ip)
-    
+
 
     try :
         #Set the whole string
@@ -101,20 +101,20 @@ def client():
     list_of_files = [ f for f in listdir(path+'/sharing') if isfile(join(path+'/sharing',f)) ]
     print(list_of_files)
 
-    
+
     message = "HEY 192.168.1.6 {}".format(str(port))
     message1 = create_list_msg(list_of_files)
     print('Your name is ??????')
     nickname = raw_input()
-    message2 = 'NAME ' + nickname 
+    message2 = 'NAME ' + nickname
     configuration['name'] = nickname
     print('configuration dictionary is : ')
     print(configuration)
-    
+
     #Call function
     send_message(message)
     send_message(message1)
     send_message(message2)
-    
+
 if __name__ == "__main__":
     client()

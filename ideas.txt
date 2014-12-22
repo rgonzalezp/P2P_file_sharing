@@ -1,5 +1,5 @@
 1)xrisimopoiume ena arxeio ws library pou ginetai include k sto server k ston client kai periexei tis entoles tou protocol pou dimiourgisame
-o server ananewnei tin lista tou 
+o server ananewnei tin lista tou
 O server exei mia lista i opoia exei ws pedio namescl str , ip int, name of files , port, unique id : ip, port
 
 2)o client gnwrizei ta arxeia tou, koitwntas se ena directory kai prosthetei ta onomata twn arxeiwn se mia topiki lista ston client. Leipsh  tis listas apo ton server,
