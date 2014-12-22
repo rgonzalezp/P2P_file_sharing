@@ -18,8 +18,8 @@ def create_message(message_type, arguments):
     elif message_type == "LIST":
         files_list = arguments
         message = "LIST\n"
-        for f in files_list:
-            message += f + '\n'
+        for file_ in files_list:
+            message += file_ + '\n'
 
     elif message_type == "OK":
         message = "OK"
@@ -80,15 +80,15 @@ def get_name(configuration_file, configuration):
 
 
 def configuration_load(configuration_file):
-    with open(configuration_file, 'rb') as f:
-        configuration = json.load(f)
+    with open(configuration_file, 'rb') as file_:
+        configuration = json.load(file_)
 
     return configuration
 
 
 def configuration_save(configuration_file, configuration):
-    with open(configuration_file, 'wb+') as f:
-        json.dump(configuration, f)
+    with open(configuration_file, 'wb+') as file_:
+        json.dump(configuration, file_, sort_keys=True, indent=4, separators=(',', ': '))
 
 
 def client():
@@ -121,10 +121,11 @@ def client():
         configuration["listening_port"] = 10000 + (int(argument) * 1000)
         configuration["id"] = "-"
         configuration["name"] = "-"
-        configuration["sharing_directory"] = working_directory + "/sharing"
+        configuration["share_directory"] = "share"
         configuration_save(configuration_file, configuration)
 
-    files_list = [ f for f in os.listdir(configuration["sharing_directory"]) if os.path.isfile(os.path.join(configuration["sharing_directory"], f)) ]
+    share_directory = working_directory + "/" + configuration["share_directory"]
+    files_list = [ file_ for file_ in os.listdir(share_directory) if os.path.isfile(os.path.join(share_directory, file_)) ]
     # DEBUG
     print("files_list:")
     print(files_list)
