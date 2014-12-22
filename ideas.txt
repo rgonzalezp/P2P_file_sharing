@@ -1,5 +1,5 @@
 1)xrisimopoiume ena arxeio ws library pou ginetai include k sto server k ston client kai periexei tis entoles tou protocol pou dimiourgisame
-o server ananewnei tin lista tou 
+o server ananewnei tin lista tou
 O server exei mia lista i opoia exei ws pedio namescl str , ip int, name of files , port, unique id : ip, port
 
 2)o client gnwrizei ta arxeia tou, koitwntas se ena directory kai prosthetei ta onomata twn arxeiwn se mia topiki lista ston client. Leipsh  tis listas apo ton server,
@@ -11,9 +11,11 @@ COMMANDS
 '*' :  answer to command
 //////////////////////////
 
-CLIENT
-- HEY 'id'//Gives the id if exists, if not gives '-'
-* WELCOME 'id' //answer to client with :1)existing id or the new unique generated id.
+CLIENT->SERVER
+---
+c: HEY 'id'//Gives the id if exists, if not gives '-'
+s: WELCOME 'id' //answer to client with :1)existing id or the new unique generated id.
+c: OK //confirm for correct command
 
 - CONN client_ip client_port //Gives the ip and the port of the client
 * OK //confirm for correct command
@@ -25,10 +27,15 @@ CLIENT
 * OK "name"//confirm for correct command
 
 - GETLIST //ask from server the list
-* OK //confirm for correct command
+* FULLLIST filea.txt fileb.txt ... //Send to server the names of the files u got
+- OK //confirm for correct command
 
+
+SERVER->CLIENT
+---
+
+
+CLIENT<->CLIENT
+---
 - SHARE 'filename' 'clientname'
-SERVER
-- ID 'id' //Gives the unique id to the client
-* IAM 'id' //answer from client to server
-
+* OK //confirm for correct command

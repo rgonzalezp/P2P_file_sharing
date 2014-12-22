@@ -3,23 +3,75 @@
 
 
 from __future__ import print_function
+import os
 import socket
 import thread
 
 
+configuration = {}
 clients = {}
 
 
-def parse_msg(client, msg):
-    print (msg)
+def create_message(message_type, arguments):
+    if message_type == "WELCOME":
+        message = "WELCOME" + arguments[0]
+    elif message_type == "OK":
+        message = "OK"
+    else:
+        print("error, wrong message type")
+        sys.exit()
+
+    return message
+
+
+def send_message(client, message):
+    client_ip, client_port = client
+
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    except socket.error:
+        print('error, failed to create socket')
+        sys.exit()
+
+    offset = 0
+    while True:
+        try:
+            s.connect((client_ip, client_port + offset))
+            print()
+            print("DEBUG connected:")
+            print(s)
+            print()
+        except socket.error:
+            offset += 1
+            continue
+        break
+
+    try:
+        s.sendall(message)
+    except socket.error:
+        print('error')
+        sys.exit()
+
+    s.close()
+
+
+
+def parse_msg(peer_socket, client, msg):
+    print(msg)
     msg_lines = msg.split('\n')
     fields = msg_lines[0].split()
     msg_id = fields[0]
 
     if msg_id == 'HEY':
-        #client_ip = fields[1]
-        #client_port = fields[2]
-        pass
+        client_id = fields[1]
+        if client_id == "-":
+            configuration["max_id"] += 1
+            with open(configuration_path, 'wb+') as f:
+                pickle.dump(configuration, f)
+            client_id = "user_{04}".format(configuration["max_id"])
+        message = create_message("WELCOME", (client_id, ))
+        send_message(peer_socket, message)
+
     elif msg_id == 'LIST':
         #print('Len:' +str(len(msg_lines)))
         #print(fields)
@@ -35,16 +87,30 @@ def parse_msg(client, msg):
     print('LIST OF CLIENTS AND THEIR FILES:\n{}'.format(clients))
 
 
-def client_thread(client, client_socket):
+def client_thread(peer_socket, client):
     while True:
-        data = client_socket.recv(1024)
-        parse_msg(client, data)
+        data = peer_socket.recv(1024)
+        parse_msg(peer_socket, client, data)
         print('Data just received:')
         print(data)
         print('')
 
 
 def server():
+    configuration_path = "configuration.txt"
+
+    if os.path.isfile(configuration_path):
+        with open(configuration_path, 'rb') as f:
+            configuration = pickle.load(f)
+        print("configuration: ")
+        print(configuration)
+    else:
+        configuration['id'] = '-'
+        configuration['max_id'] = 0
+        with open(configuration_path, 'wb+') as f:
+            pickle.dump(configuration, f)
+
+
     host = 'localhost'
     port = 5000
 
@@ -56,25 +122,22 @@ def server():
         try:
             s.bind((host, port))
             break
-        except socket.error , msg:
-            port = port + 1
-            print('changing port to an available port ' + str(port))
+        except socket.error, msg:
+            port += 1
 
-            print('Bind failed. Error Code : ' + str(msg[0]) + ' Message ' + msg[1])
-
-    print('Socket bind complete')
 
     #Start listening on socket
-    s.listen(10)
-    print('Socket now listening')
+    s.listen(5)
+    print('server listening on port: ' + port)
 
     while True:
-        client_socket, addr = s.accept()
-        print('Connected with ' + addr[0] + ':' + str(addr[1]))
+        peer_socket, address = s.accept()
+        print('client connected with ' + address[0] + ':' + str(address[1]))
 
-        clients[addr] = {"name": "", "files": []}
+        clients[address] = {"name": "", "files": []}
         print(clients)
-        thread.start_new_thread(client_thread, (addr,client_socket))
+
+        thread.start_new_thread(client_thread, (peer_socket, address))
 
 
 if __name__ == "__main__":

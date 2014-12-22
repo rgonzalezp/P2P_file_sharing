@@ -3,15 +3,16 @@
 
 
 from __future__ import print_function
+import os
 import socket
 import sys
 import time
-from os import listdir
-from os.path import isfile, join
-import os.path
+import cPickle as pickle
+
 
 host = 'localhost'
 port = 5000
+
 
 def create_list_msg (list_of_files):
     print(list_of_files)
@@ -25,96 +26,84 @@ def create_list_msg (list_of_files):
     return list_msg
 
 
-def send_message(message):
+def send_message(server, message):
+    server_ip, server_port = server
+
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        print("INFO OF CLIENT: ")
-        print(s)
     except socket.error:
-        print('Failed to create socket')
+        print('error, failed to create socket')
         sys.exit()
 
-    print('Socket Created')
-
-    try:
-        remote_ip = socket.gethostbyname( host )
-    except socket.gaierror:
-        #could not resolve
-        print('Hostname could not be resolved. Exiting')
-        sys.exit()
-
-    #Connect to remote server
-    global port
+    offset = 0
     while True:
         try:
-            s.connect((remote_ip , port))
+            s.connect((server_ip, server_port + offset))
+            print()
+            print("DEBUG connected:")
+            print(s)
+            print()
         except socket.error:
-            port = port + 1
-            print('Finding new port ' + str(port))
+            offset += 1
             continue
         break
 
-    print('Socket Connected to ' + host + ' on ip ' + remote_ip)
-
-
-    try :
-        #Set the whole string
+    try:
         s.sendall(message)
     except socket.error:
-        #Send failed
         print('Send failed')
         sys.exit()
 
-    print('Message send successfully')
-    #Now receive data
-    #reply = s.recv(4096)
-   # print(reply)
+    reply = s.recv(1024)
+    print(reply)
+
+    # close the socket
     s.close()
-    print ('Socket Closed')
+
 
 def client():
-    path = sys.argv[1]
-    print(path)
+    # check if an argument was passed
+    if len(sys.argv) < 2:
+        print("please pass one of the arguments: {1, 2, 3}")
+        sys.exit()
+
     configuration = {}
 
-    if os.path.isfile(path + '/configuration.txt') :
-        configuration_file = open(path + '/configuration.txt', 'w+')
-        configuration_string = configuration_file.read()
-        configuration_lines = configuration_string.split('\n')
-        for line in configuration_lines:
-            fields = line.split(':')
-            print (fields)
-            fields = [field.strip() for field in fields]
-            print (fields)
-            if fields[0] == 'id':
-                configuration['id'] = fields[1]
-            elif fields[0] == 'name':
-                configuration['name'] = fields[1]
-            else:
-                print ('error')
+    working_directory = sys.argv[1]
+    print("working_directory: " + working_directory)
+
+    configuration_path = working_directory + "/configuration.txt"
+    if os.path.isfile(configuration_path):
+        with open(configuration_path, 'rb') as f:
+            configuration = pickle.load(f)
+        print("configuration: ")
+        print(configuration)
     else:
         configuration['id'] = '-'
-        configuration_file = open(path + '/configuration.txt', 'w+')
-        configuration_file.write('id: -\n')
+        with open(configuration_path, 'wb+') as f:
+            pickle.dump(configuration, f)
 
 
-    list_of_files = [ f for f in listdir(path+'/sharing') if isfile(join(path+'/sharing',f)) ]
+    list_of_files = [ f for f in os.listdir(working_directory + '/sharing') if os.path.isfile(os.path.join(working_directory + '/sharing', f)) ]
     print(list_of_files)
 
 
-    message = "HEY 192.168.1.6 {}".format(str(port))
+    message = "HEY {}".format(configuration["id"])
+
     message1 = create_list_msg(list_of_files)
+
     print('Your name is ??????')
     nickname = raw_input()
-    message2 = 'NAME ' + nickname
     configuration['name'] = nickname
-    print('configuration dictionary is : ')
-    print(configuration)
+    with open(configuration_path, 'wb+') as f:
+        pickle.dump(configuration, f)
+    message2 = 'NAME ' + configuration["name"]
 
-    #Call function
+    # call function
     send_message(message)
     send_message(message1)
     send_message(message2)
+
 
 if __name__ == "__main__":
     client()
