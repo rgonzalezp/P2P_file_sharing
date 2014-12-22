@@ -14,6 +14,8 @@ notes
 's' :  self
 'p' :  peer
 
+OK : generic confirmation
+
 All commands are terminated with a newline (\n) and the null character (\0).
 
 
@@ -21,20 +23,20 @@ CLIENT -> SERVER
 ---
 s: HEY 'id'  # send the existing id, or else "-"
 p: WELCOME 'id'  # answer to client with existing id or the new unique generated id.
-s: OK  # generic confirmation
+s: OK
 
 s: CONNECT own_ip own_port  # send the ip address and port we are listening to for incoming connections
-p: OK  # generic confirmation
+p: OK
 
 s: LIST number_of_files [\nfilea.txt] [\nfileb.txt] [...]  # send the list of the files you are sharing
-p: OK  # generic confirmation
+p: OK
 
 s: NAME "name"  # specify a nickname
-p: OK  # generic confirmation
+p: OK
 
 s: GETLIST  # request the list with clients and the files they are sharing
 p: FULLLIST number_of_files [\nfilea.txt] [\nfileb.txt] [...]  # send the list of the clients and the files they are sharing
-s: OK  # generic confirmation
+s: OK
 
 
 SERVER -> CLIENT
@@ -44,4 +46,4 @@ SERVER -> CLIENT
 CLIENT -> CLIENT
 ---
 s: SHARE 'filename' 'clientname'
-p: OK  # generic confirmation
+p: OK
