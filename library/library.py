@@ -3,6 +3,18 @@
 
 
 import json
+import socket
+
+
+def send_message(connection, message):
+    try:
+        connection.sendall(message)
+    except socket.error:
+        print('error, send_message')
+        sys.exit(-1)
+    # DEBUG
+    print("message sent:")
+    print(message)
 
 
 def configuration_load(configuration_file):

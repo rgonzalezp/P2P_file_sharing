@@ -5,135 +5,151 @@
 from __future__ import print_function
 import os
 import socket
+import sys
 import thread
 
+from library.library import configuration_load
+from library.library import configuration_save
+from library.library import send_message
 
+
+configuration_file = ""
 configuration = {}
 clients = {}
 
 
-def create_message(message_type, arguments):
-    if message_type == "WELCOME":
-        message = "WELCOME " + arguments[0]
-    elif message_type == "OK":
-        message = "OK"
+def converse(connection, client, incoming_buffer, previous_command):
+    global configuration_file
+    global configuration
+    global clients
+
+    if "\0" not in incoming_buffer:
+        return "", previous_command
     else:
-        print("error, wrong message type")
-        sys.exit()
-
-    return message
-
-
-def send_message(client, message):
-    client_ip, client_port = client
-
-    try:
-        socket_ = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    except socket.error:
-        print('error, failed to create socket')
-        sys.exit()
-
-    offset = 0
-    while True:
-        try:
-            socket_.connect((client_ip, client_port + offset))
-            print()
-            print("DEBUG connected:")
-            print(socket_)
-            print()
-        except socket.error:
-            offset += 1
-            continue
-        break
-
-    try:
-        socket_.sendall(message)
-    except socket.error:
-        print('error, socket.sendall')
-        sys.exit()
-
-    socket_.close()
-
-
-
-def parse_message(peer_socket, client, message):
+        index = incoming_buffer.index("\0")
+        message = incoming_buffer[0:index-1]
+        incoming_buffer = incoming_buffer[index+1:]
+    # DEBUG
+    print("message received:")
     print(message)
-    message_lines = message.split('\n')
-    fields = message_lines[0].split()
-    message_id = fields[0]
+    print()
 
-    if message_id == 'HEY':
+    lines = message.split('\n')
+    fields = lines[0].split()
+    command = fields[0]
+
+    if command == 'HEY':
         client_id = fields[1]
         if client_id == "-":
-            configuration["max_id"] += 1
-            with open(configuration_path, 'wb+') as f:
-                pickle.dump(configuration, f)
-            client_id = "user_{04}".format(configuration["max_id"])
-        message = create_message("WELCOME", (client_id, ))
+            configuration["max_id_offset"] += 1
+            configuration_save(configuration_file, configuration)
+            client_id = "user_{0:0>4}".format(configuration["max_id_offset"])
+        send_message(connection, "WELCOME " + client_id + "\n\0")
+        return converse(connection, client, incoming_buffer, "WELCOME")
 
-    elif message_id == 'LIST':
-        if int(fields[1]) != (len(message_lines) - 1):
-            print("Error, incompatibility of number of files")
-        clients[client]["files"] = message_lines[1:]
-    elif message_id == 'NAME':
+    elif command == 'LIST':
+        number_of_files = int(fields[1])
+        if number_of_files != (len(lines) - 1):
+            print("error, wrong number of files")
+            reply = "ERROR\n\0"
+        else:
+            clients[client]["files"] = lines[1:]
+        send_message(connection, "OK\n\0")
+        return incoming_buffer, "OK"
+
+    elif command == 'NAME':
         print(fields)
         clients[client]["name"] = fields[1]
+        send_message(connection, "OK\n\0")
+
+        # DEBUG
+        print("clients:")
+        print(clients)
+
+        return incoming_buffer, "OK"
+
+    elif command == 'OK' and previous_command == "WELCOME":
+        return incoming_buffer, "OK"
+
     else:
-        print("this shouldn't have happened")
+        # TODO
+        # handle invalid commands
+        print("error, invalid command")
+        sys.exit(-1)
 
-    print("clients:")
-    print(clients)
 
+def client_thread(connection, address):
+    global clients
 
-def client_thread(peer_socket, client):
+    clients[address] = {"name": "", "files": []}
+
+    # start with an empty incoming messages buffer
+    incoming_buffer = ""
+    previous_command = ""
+
     while True:
-        data = peer_socket.recv(1024)
-        print('message received:')
-        print(data)
-        print('')
+        incoming = connection.recv(4096)
+        if len(incoming) == 0:
+            break
+        else:
+            incoming_buffer += incoming
+
+        incoming_buffer, previous_command = converse(connection, address, incoming_buffer, previous_command)
+
+
+def serve(host, port):
+    try:
+        server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    except socket.error:
+        print('error, socket.socket')
+        sys.exit(-1)
+
+    # TODO
+    # replace with the equivalent code without using an offset
+    while True:
+        try:
+            server_socket.bind( (host, port) )
+            break
+        except socket.error:
+            # DEBUG
+            print("port {} in use, trying the next one".format(port))
+            port += 1
+
+    # listen for incoming connections
+    server_socket.listen(5)
+    print('server listening on port: ' + str(port))
+    print()
+
+    # handle incoming connections
+    while True:
+        connection, address = server_socket.accept()
+        # DEBUG
+        print('a client connected with ' + address[0] + ':' + str(address[1]))
+
+        thread.start_new_thread(client_thread, (connection, address))
 
 
 def server():
-    configuration_path = "configuration.txt"
+    global configuration_file
+    global configuration
+    global clients
 
-    if os.path.isfile(configuration_path):
-        with open(configuration_path, 'rb') as f:
-            configuration = pickle.load(f)
-        print("configuration: ")
-        print(configuration)
+    configuration_file = "configuration.json"
+
+    if os.path.isfile(configuration_file):
+        configuration = configuration_load(configuration_file)
     else:
         configuration["host"] = "localhost"
         configuration["port"] = 5000
-        configuration['max_id'] = 0
-        with open(configuration_path, 'wb+') as f:
-            pickle.dump(configuration, f)
+        configuration['max_id_offset'] = 0
+        configuration_save(configuration_file, configuration)
+    # DEBUG
+    print("configuration:")
+    print(configuration)
+    print()
 
 
-    socket_ = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    print('Socket created')
-
-    #Bind socket to local host and port
-    while True:
-        try:
-            socket_.bind((host, port))
-            break
-        except socket.error, message:
-            port += 1
-
-
-    #Start listening on socket
-    socket_.listen(5)
-    print('server listening on port: ' + port)
-
-    while True:
-        peer_socket, address = socket_.accept()
-        print('client connected with ' + address[0] + ':' + str(address[1]))
-
-        clients[address] = {"name": "", "files": []}
-        print(clients)
-
-        thread.start_new_thread(client_thread, (peer_socket, address))
-
+    serve(configuration["host"], configuration["port"])
 
 if __name__ == "__main__":
     server()

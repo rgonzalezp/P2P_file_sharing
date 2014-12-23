@@ -11,32 +11,34 @@ PROTOCOL COMMANDS
 ===
 notes
 ---
-'s' :  self
+'c' :  client
+'s' :  server
 'p' :  peer
 
 OK : generic confirmation
+ERROR : generic error reply
 
 All commands are terminated with a newline (\n) and the null character (\0).
 
 
 CLIENT -> SERVER
 ---
-s: HEY 'id'  # send the existing id, or else "-"
-p: WELCOME 'id'  # answer to client with existing id or the new unique generated id.
+c: HEY 'id'  # send the existing id, or else "-"
+s: WELCOME 'id'  # answer to client with existing id or the new unique generated id.
+c: OK
+
+c: CONNECT own_ip own_port  # send the ip address and port we are listening to for incoming connections
 s: OK
 
-s: CONNECT own_ip own_port  # send the ip address and port we are listening to for incoming connections
-p: OK
-
-s: LIST number_of_files [\nfilea.txt] [\nfileb.txt] [...]  # send the list of the files you are sharing
-p: OK
-
-s: NAME "name"  # specify a nickname
-p: OK
-
-s: GETLIST  # request the list with clients and the files they are sharing
-p: FULLLIST number_of_files [\nfilea.txt] [\nfileb.txt] [...]  # send the list of the clients and the files they are sharing
+c: LIST number_of_files [\nfilea.txt] [\nfileb.txt] [...]  # send the list of the files you are sharing
 s: OK
+
+c: NAME "name"  # specify a nickname
+s: OK
+
+c: SENDLIST  # request the list with clients and the files they are sharing
+s: FULLLIST number_of_files [\nfilea.txt] [\nfileb.txt] [...]  # send the list of the clients and the files they are sharing
+c: OK
 
 
 SERVER -> CLIENT
@@ -45,5 +47,5 @@ SERVER -> CLIENT
 
 CLIENT -> CLIENT
 ---
-s: SHARE 'filename' 'clientname'
+c: SHARE 'filename' 'clientname'
 p: OK
