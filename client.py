@@ -161,6 +161,20 @@ def client():
 
     converse(server, incoming_buffer, "NAME")
 
+     # send SENDLIST command
+    ############################################################################
+    print('If you want the list of files type: "SENDLIST" , else type "QUIT".): ')
+
+    while True:
+        ask_list = raw_input()
+        if ask_list == 'SENDLIST':
+            send_message(server, "SENDLIST " + "\n\0")
+            break
+        elif ask_list == 'QUIT':
+            break
+        else:
+            print('Wrong command!!! Try again.')
+
 
     print("conversation successful")
 

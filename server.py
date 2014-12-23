@@ -37,7 +37,8 @@ def converse(connection, client, incoming_buffer, previous_command):
     lines = message.split('\n')
     fields = lines[0].split()
     command = fields[0]
-
+    #na diorthwsoume bug, otan mpainei deuteri fora o idios na min ton
+    #ksanavazei sti lista clients, mono na enimwrnei ta arxeia 
     if command == 'HEY':
         client_id = fields[1]
         if client_id == "-":
@@ -68,6 +69,9 @@ def converse(connection, client, incoming_buffer, previous_command):
         print(clients)
 
         return incoming_buffer, "OK"
+
+    #elif command == 'SENDLIST':
+    #stelnei tin lista ston client
 
     elif command == 'OK' and previous_command == "WELCOME":
         return incoming_buffer, "OK"
