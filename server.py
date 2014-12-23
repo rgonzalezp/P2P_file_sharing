@@ -51,6 +51,7 @@ def converse(connection, client, incoming_buffer, previous_command):
         number_of_files = int(fields[1])
         if number_of_files != (len(lines) - 1):
             print("error, wrong number of files")
+            #to reply den to xrisimopoioume kapou, logika tha eprepe na to epistrefoume kai na to anagnwrizei o client
             reply = "ERROR\n\0"
         else:
             clients[client]["files"] = lines[1:]
