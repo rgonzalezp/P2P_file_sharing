@@ -10,3 +10,5 @@
 *.json
 
 notes.txt
+*.pdf
+*.*~
