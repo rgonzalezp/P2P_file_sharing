@@ -94,7 +94,7 @@ def client():
 
     # check if an argument was passed
     if len(sys.argv) < 2:
-        print("please pass one of the following arguments: {1, 2, 3}")
+        print("please pass the user id")
         sys.exit(-1)
 
     argument = sys.argv[1]
@@ -111,7 +111,7 @@ def client():
     else:
         configuration["server_host"] = "localhost"
         configuration["server_port"] = 5000
-        configuration["listening_port"] = 10000 + (int(argument) * 1000)
+        configuration["listening_port"] = 10000 + (int(argument[-4:]) * 1000)
         configuration["id"] = "-"
         configuration["share_directory"] = "share"
         configuration_save(configuration_file, configuration)

@@ -11,22 +11,22 @@ s:
 	python server.py
 
 
-# run client 1
+# run client user_0001
 .PHONY: 1
 1:
-	python client.py 1
+	python client.py user_0001
 
 
-# run client 2
+# run client user_0002
 .PHONY: 2
 2:
-	python client.py 2
+	python client.py user_0002
 
 
-# run client 3
+# run client user_0003
 .PHONY: 3
 3:
-	python client.py 3
+	python client.py user_0003
 
 
 # remove Python bytecode and JSON files
