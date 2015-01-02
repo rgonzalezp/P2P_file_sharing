@@ -37,8 +37,16 @@ c: NAME "name"  # specify a nickname
 s: OK
 
 c: SENDLIST  # request the list with clients and the files they are sharing
-s: FULLLIST number_of_files [\nfilea.txt] [\nfileb.txt] [...]  # send the list of the clients and the files they are sharing
+s: FULLLIST number_of_files [\nclient_name file.txt] [\nclient_name file.txt] [...]  # send the list of the clients and the files they are sharing
 c: OK
+# TODO
+# maybe optimize to this?
+# FULLLIST 3
+# kostas 2
+# a.txt
+# b.c
+# takis 1
+# ab cd.py
 
 
 SERVER -> CLIENT

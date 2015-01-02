@@ -42,6 +42,18 @@ def converse(server, incoming_buffer, previous_command):
         send_message(server, "OK\n\0")
         return incoming_buffer
 
+    elif command == 'FULLLIST' and previous_command == "SENDLIST":
+        number_of_files = int(fields[1])
+        if number_of_files != (len(lines) - 1):
+            print("error, wrong number of files")
+            # TODO
+            #to reply den to xrisimopoioume kapou, logika tha eprepe na to epistrefoume kai na to anagnwrizei o client
+            reply = "ERROR\n\0"
+        else:
+            for line in lines[1:]:
+                print(line)
+            send_message(server, "OK\n\0")
+
     elif command == 'OK' and previous_command in ("LIST", "NAME"):
         return incoming_buffer
 
@@ -161,14 +173,17 @@ def client():
 
     converse(server, incoming_buffer, "NAME")
 
+
      # send SENDLIST command
     ############################################################################
-    print('If you want the list of files type: "SENDLIST" , else type "QUIT".): ')
+    print('If you want the list of files type: "SENDLIST"/"s" , else type "QUIT"/"quit"/"Q"/"q".): ')
 
     while True:
         ask_list = raw_input()
-        if ask_list == 'SENDLIST':
+        if ask_list in ['SENDLIST', "s"]:
             send_message(server, "SENDLIST " + "\n\0")
+
+            converse(server, incoming_buffer, "SENDLIST")
             break
         elif ask_list in ['QUIT', 'quit', 'Q', 'q']:
             break

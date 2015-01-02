@@ -49,8 +49,7 @@ def converse(connection, client, incoming_buffer, previous_command):
     lines = message.split('\n')
     fields = lines[0].split()
     command = fields[0]
-    #na diorthwsoume bug, otan mpainei deuteri fora o idios na min ton
-    #ksanavazei sti lista clients, mono na enimwrnei ta arxeia
+
     if command == 'HEY':
         client_id = fields[1]
         if client_id == "-":
@@ -74,6 +73,7 @@ def converse(connection, client, incoming_buffer, previous_command):
         number_of_files = int(fields[1])
         if number_of_files != (len(lines) - 1):
             print("error, wrong number of files")
+            # TODO
             #to reply den to xrisimopoioume kapou, logika tha eprepe na to epistrefoume kai na to anagnwrizei o client
             reply = "ERROR\n\0"
         else:
@@ -94,10 +94,24 @@ def converse(connection, client, incoming_buffer, previous_command):
 
         return incoming_buffer, "OK"
 
-    #elif command == 'SENDLIST':
-    #stelnei tin lista ston client
+    elif command == 'SENDLIST':
+        number_of_all_clients_files = 0
+        for client in clients:
+            client_number_of_files = len(clients[client]["files"])
+            print("client_number_of_files:")
+            print(client_number_of_files)
+            number_of_all_clients_files += len(clients[client]["files"])
+        fulllist_message = "FULLLIST {}\n".format(number_of_all_clients_files)
+        for client in clients:
+            for file_ in clients[client]["files"]:
+                fulllist_message += clients[client]["name"] + " " + file_ + '\n'
+            fulllist_message += '\0'
 
-    elif command == 'OK' and previous_command == "WELCOME":
+        send_message(connection, fulllist_message)
+
+        converse(connection, client, incoming_buffer, "FULLLIST")
+
+    elif command == 'OK' and previous_command in ["WELCOME", "FULLLIST"]:
         return incoming_buffer, "OK"
 
     else:
@@ -124,7 +138,15 @@ def client_thread(connection, address):
         else:
             incoming_buffer += incoming
 
+        print()
+        print("connection, address, incoming_buffer, previous_command:")
+        print(connection, address, incoming_buffer, previous_command)
         incoming_buffer, previous_command = converse(connection, address, incoming_buffer, previous_command)
+        print("incoming_buffer, previous_command:")
+        print(incoming_buffer, previous_command)
+
+
+        #incoming_buffer, previous_command = converse(connection, address, incoming_buffer, previous_command)
 
 
 def server():
