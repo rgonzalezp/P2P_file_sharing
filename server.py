@@ -8,20 +8,32 @@ import socket
 import sys
 import thread
 
-from library.library import configuration_load
-from library.library import configuration_save
+from library.library import json_load
+from library.library import json_save
 from library.library import send_message
 
 
 configuration_file = ""
 configuration = {}
+
+clients_file = ""
+# {client_id: {'name': name, 'files': [list of shared files], listening_connection: (IP_address, port)}}
 clients = {}
 
+# {(IP_address, port): client_id}
+connected_clients = {}
+# connected_clients[ (old_IP_address, old_port) ] -> client_id
+# connected_clients[ (new_IP_address, new_port) ] -> client_id
 
+
+# NOTE
+# (incoming_buffer, previous_command) in "state" in FSM
 def converse(connection, client, incoming_buffer, previous_command):
     global configuration_file
     global configuration
+    global clients_file
     global clients
+    global connected_clients
 
     if "\0" not in incoming_buffer:
         return "", previous_command
@@ -38,13 +50,23 @@ def converse(connection, client, incoming_buffer, previous_command):
     fields = lines[0].split()
     command = fields[0]
     #na diorthwsoume bug, otan mpainei deuteri fora o idios na min ton
-    #ksanavazei sti lista clients, mono na enimwrnei ta arxeia 
+    #ksanavazei sti lista clients, mono na enimwrnei ta arxeia
     if command == 'HEY':
         client_id = fields[1]
         if client_id == "-":
             configuration["max_id_offset"] += 1
-            configuration_save(configuration_file, configuration)
+            json_save(configuration_file, configuration)
             client_id = "user_{0:0>4}".format(configuration["max_id_offset"])
+
+            clients[client_id] = {"name": "", "files": [], "listening_connection": None}
+            json_save(clients_file, clients)
+
+        connected_clients[client] = client_id
+
+        # DEBUG
+        print("connected_clients:")
+        print(connected_clients)
+
         send_message(connection, "WELCOME " + client_id + "\n\0")
         return converse(connection, client, incoming_buffer, "WELCOME")
 
@@ -55,13 +77,15 @@ def converse(connection, client, incoming_buffer, previous_command):
             #to reply den to xrisimopoioume kapou, logika tha eprepe na to epistrefoume kai na to anagnwrizei o client
             reply = "ERROR\n\0"
         else:
-            clients[client]["files"] = lines[1:]
+            clients[connected_clients[client]]["files"] = lines[1:]
+            json_save(clients_file, clients)
         send_message(connection, "OK\n\0")
         return incoming_buffer, "OK"
 
     elif command == 'NAME':
         print(fields)
-        clients[client]["name"] = fields[1]
+        clients[connected_clients[client]]["name"] = fields[1]
+        json_save(clients_file, clients)
         send_message(connection, "OK\n\0")
 
         # DEBUG
@@ -84,9 +108,10 @@ def converse(connection, client, incoming_buffer, previous_command):
 
 
 def client_thread(connection, address):
-    global clients
-
-    clients[address] = {"name": "", "files": []}
+    """
+    connection : connection socket
+    address : (IP_address, port)
+    """
 
     # start with an empty incoming messages buffer
     incoming_buffer = ""
@@ -102,12 +127,45 @@ def client_thread(connection, address):
         incoming_buffer, previous_command = converse(connection, address, incoming_buffer, previous_command)
 
 
-def serve(host, port):
+def server():
+    global configuration_file
+    global configuration
+    global clients_file
+    global clients
+
+    configuration_file = "configuration.json"
+    clients_file = "clients.json"
+
+    if os.path.isfile(configuration_file):
+        configuration = json_load(configuration_file)
+    else:
+        configuration["host"] = "localhost"
+        configuration["port"] = 5000
+        configuration['max_id_offset'] = 0
+        json_save(configuration_file, configuration)
+    # DEBUG
+    print("configuration:")
+    print(configuration)
+    print()
+
+
+    if os.path.isfile(clients_file):
+        clients = json_load(clients_file)
+    else:
+        json_save(clients_file, clients)
+    # DEBUG
+    print("clients:")
+    print(clients)
+
+
     try:
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     except socket.error:
         print('error, socket.socket')
         sys.exit(-1)
+
+    host = configuration["host"]
+    port = configuration["port"]
 
     # TODO
     # replace with the equivalent code without using an offset
@@ -134,27 +192,6 @@ def serve(host, port):
         thread.start_new_thread(client_thread, (connection, address))
 
 
-def server():
-    global configuration_file
-    global configuration
-    global clients
-
-    configuration_file = "configuration.json"
-
-    if os.path.isfile(configuration_file):
-        configuration = configuration_load(configuration_file)
-    else:
-        configuration["host"] = "localhost"
-        configuration["port"] = 5000
-        configuration['max_id_offset'] = 0
-        configuration_save(configuration_file, configuration)
-    # DEBUG
-    print("configuration:")
-    print(configuration)
-    print()
-
-
-    serve(configuration["host"], configuration["port"])
 
 if __name__ == "__main__":
     server()

@@ -17,16 +17,16 @@ def send_message(connection, message):
     print(message)
 
 
-def configuration_load(configuration_file):
-    with open(configuration_file, 'rb') as file_:
-        configuration = json.load(file_)
+def json_load(json_file):
+    with open(json_file, 'rb') as file_:
+        json_ = json.load(file_)
 
-    return configuration
+    return json_
 
 
-def configuration_save(configuration_file, configuration):
-    with open(configuration_file, 'wb+') as file_:
-        json.dump(configuration, file_, sort_keys=True, indent=4, separators=(',', ': '))
+def json_save(json_file, json_):
+    with open(json_file, 'wb+') as file_:
+        json.dump(json_, file_, sort_keys=True, indent=4, separators=(',', ': '))
 
 
 if __name__ == "__main__":

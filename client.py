@@ -7,8 +7,8 @@ import os
 import socket
 import sys
 
-from library.library import configuration_load
-from library.library import configuration_save
+from library.library import json_load
+from library.library import json_save
 from library.library import send_message
 
 
@@ -38,7 +38,7 @@ def converse(server, incoming_buffer, previous_command):
     if command == 'WELCOME':
         id_ = fields[1]
         configuration["id"] = id_
-        configuration_save(configuration_file, configuration)
+        json_save(configuration_file, configuration)
         send_message(server, "OK\n\0")
         return incoming_buffer
 
@@ -86,7 +86,7 @@ def get_name(configuration_file, configuration):
         name = configuration["id"]
 
     configuration['name'] = name
-    configuration_save(configuration_file, configuration)
+    json_save(configuration_file, configuration)
 
 
 def client():
@@ -107,14 +107,14 @@ def client():
     configuration_file = working_directory + "/configuration.json"
 
     if os.path.isfile(configuration_file):
-        configuration = configuration_load(configuration_file)
+        configuration = json_load(configuration_file)
     else:
         configuration["server_host"] = "localhost"
         configuration["server_port"] = 5000
         configuration["listening_port"] = 10000 + (int(argument[-4:]) * 1000)
         configuration["id"] = "-"
         configuration["share_directory"] = "share"
-        configuration_save(configuration_file, configuration)
+        json_save(configuration_file, configuration)
     # DEBUG
     print("configuration:")
     print(configuration)
@@ -170,7 +170,7 @@ def client():
         if ask_list == 'SENDLIST':
             send_message(server, "SENDLIST " + "\n\0")
             break
-        elif ask_list == 'QUIT':
+        elif ask_list in ['QUIT', 'quit', 'Q', 'q']:
             break
         else:
             print('Wrong command!!! Try again.')
