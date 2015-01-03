@@ -97,15 +97,13 @@ def converse(connection, client, incoming_buffer, previous_server_command):
     elif command == 'SENDLIST':
         number_of_all_clients_files = 0
         for client in clients:
-            client_number_of_files = len(clients[client]["files"])
-            print("client_number_of_files:")
-            print(client_number_of_files)
             number_of_all_clients_files += len(clients[client]["files"])
         fulllist_message = "FULLLIST {}\n".format(number_of_all_clients_files)
         for client in clients:
             for file_ in clients[client]["files"]:
                 fulllist_message += clients[client]["name"] + " " + file_ + '\n'
-            fulllist_message += '\0'
+
+        fulllist_message += '\0'
 
         send_message(connection, fulllist_message)
 

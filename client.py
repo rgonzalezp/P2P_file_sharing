@@ -29,7 +29,6 @@ def converse(server, incoming_buffer, previous_command):
     # DEBUG
     print("message received:")
     print(message)
-    print()
 
     lines = message.split('\n')
     fields = lines[0].split()
@@ -44,12 +43,15 @@ def converse(server, incoming_buffer, previous_command):
 
     elif command == 'FULLLIST' and previous_command == "SENDLIST":
         number_of_files = int(fields[1])
+
         if number_of_files != (len(lines) - 1):
             print("error, wrong number of files")
             # TODO
             #to reply den to xrisimopoioume kapou, logika tha eprepe na to epistrefoume kai na to anagnwrizei o client
             reply = "ERROR\n\0"
         else:
+            print()
+            print("full list of clients' files")
             for line in lines[1:]:
                 print(line)
             send_message(server, "OK\n\0")
