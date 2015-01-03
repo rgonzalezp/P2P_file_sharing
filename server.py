@@ -6,7 +6,7 @@ from __future__ import print_function
 import os
 import socket
 import sys
-import thread
+from threading import Thread
 
 from library.library import json_load
 from library.library import json_save
@@ -119,7 +119,7 @@ def converse(connection, client, incoming_buffer, own_previous_command):
         sys.exit(-1)
 
 
-def client_thread(connection, address):
+def client_function(connection, address):
     """
     connection : connection socket
     address : (IP_address, port)
@@ -201,7 +201,8 @@ def server():
         # DEBUG
         print('a client connected with ' + address[0] + ':' + str(address[1]))
 
-        thread.start_new_thread(client_thread, (connection, address))
+        client_thread = Thread(target=client_function, args=(connection, address))
+        client_thread.start()
 
 
 if __name__ == "__main__":
