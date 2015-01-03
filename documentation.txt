@@ -44,7 +44,7 @@ s: OK
 # b.c
 # jack 1
 # ab cd.py
-c: SENDLIST  # request the list with clients and the files they are sharing
+c: SENDLIST  # request the list of clients and the files they are sharing
 s: FULLLIST <number_of_files> [\n<client_a> <file_a>] [\n<client_a> <file_b>] [...] [\n<client_b> <file_a>] [\n<client_b> <file_c>] [...]  # send the list of the clients and the files they are sharing
 c: OK
 

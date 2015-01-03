@@ -16,12 +16,12 @@ configuration_file = ""
 configuration = {}
 
 
-def converse(server, incoming_buffer, previous_command):
+def converse(server, incoming_buffer, own_previous_command):
     global configuration
 
     if "\0" not in incoming_buffer:
         incoming_buffer += server.recv(4096)
-        return converse(server, incoming_buffer, previous_command)
+        return converse(server, incoming_buffer, own_previous_command)
     else:
         index = incoming_buffer.index("\0")
         message = incoming_buffer[0:index-1]
@@ -41,7 +41,7 @@ def converse(server, incoming_buffer, previous_command):
         send_message(server, "OK\n\0")
         return incoming_buffer
 
-    elif command == 'FULLLIST' and previous_command == "SENDLIST":
+    elif command == 'FULLLIST' and own_previous_command == "SENDLIST":
         number_of_files = int(fields[1])
 
         if number_of_files != (len(lines) - 1):
@@ -56,7 +56,7 @@ def converse(server, incoming_buffer, previous_command):
                 print(line)
             send_message(server, "OK\n\0")
 
-    elif command == 'OK' and previous_command in ("LIST", "NAME"):
+    elif command == 'OK' and own_previous_command in ("LIST", "NAME"):
         return incoming_buffer
 
     else:
@@ -125,6 +125,7 @@ def client():
     else:
         configuration["server_host"] = "localhost"
         configuration["server_port"] = 5000
+        configuration["listening_ip"] = "localhost"
         configuration["listening_port"] = 10000 + (int(argument[-4:]) * 1000)
         configuration["id"] = "-"
         configuration["share_directory"] = "share"
@@ -178,22 +179,30 @@ def client():
 
      # send SENDLIST command
     ############################################################################
-    print('If you want the list of files type: "SENDLIST"/"s" , else type "QUIT"/"quit"/"Q"/"q".): ')
+    send_message(server, "SENDLIST " + "\n\0")
 
+    converse(server, incoming_buffer, "SENDLIST")
+
+
+    # enter the options menu/loop
+    ############################################################################
     while True:
-        ask_list = raw_input()
-        if ask_list in ['SENDLIST', "s"]:
+        print()
+        print("options:")
+        print("1: SENDLIST / s : request the list of clients and shared files")
+        print("2: QUIT / q : exit the program")
+
+        option = raw_input()
+        if option in ["1", "s", "S", "sendlist", "SENDLIST"]:
             send_message(server, "SENDLIST " + "\n\0")
 
             converse(server, incoming_buffer, "SENDLIST")
+
+        elif option in ["2", "q", "Q", "quit", "QUIT"]:
             break
-        elif ask_list in ['QUIT', 'quit', 'Q', 'q']:
-            break
+
         else:
-            print('Wrong command!!! Try again.')
-
-
-    print("conversation successful")
+            print("invalid option, try again")
 
 
 if __name__ == "__main__":

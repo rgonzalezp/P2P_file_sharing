@@ -27,8 +27,8 @@ connected_clients = {}
 
 
 # NOTE
-# (incoming_buffer, previous_server_command) in "state" in FSM
-def converse(connection, client, incoming_buffer, previous_server_command):
+# (incoming_buffer, own_previous_command) in "state" in FSM
+def converse(connection, client, incoming_buffer, own_previous_command):
     global configuration_file
     global configuration
     global clients_file
@@ -36,7 +36,7 @@ def converse(connection, client, incoming_buffer, previous_server_command):
     global connected_clients
 
     if "\0" not in incoming_buffer:
-        return "", previous_server_command
+        return "", own_previous_command
     else:
         index = incoming_buffer.index("\0")
         message = incoming_buffer[0:index-1]
@@ -109,7 +109,7 @@ def converse(connection, client, incoming_buffer, previous_server_command):
 
         return converse(connection, client, incoming_buffer, "FULLLIST")
 
-    elif command == 'OK' and previous_server_command in ["WELCOME", "FULLLIST"]:
+    elif command == 'OK' and own_previous_command in ["WELCOME", "FULLLIST"]:
         return incoming_buffer, "OK"
 
     else:
@@ -127,7 +127,7 @@ def client_thread(connection, address):
 
     # start with an empty incoming messages buffer
     incoming_buffer = ""
-    previous_server_command = ""
+    own_previous_command = ""
 
     while True:
         incoming = connection.recv(4096)
@@ -136,7 +136,7 @@ def client_thread(connection, address):
         else:
             incoming_buffer += incoming
 
-        incoming_buffer, previous_server_command = converse(connection, address, incoming_buffer, previous_server_command)
+        incoming_buffer, own_previous_command = converse(connection, address, incoming_buffer, own_previous_command)
 
 
 def server():
