@@ -204,6 +204,5 @@ def server():
         thread.start_new_thread(client_thread, (connection, address))
 
 
-
 if __name__ == "__main__":
     server()

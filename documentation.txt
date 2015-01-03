@@ -23,30 +23,33 @@ All commands are terminated with a newline (\n) and the null character (\0).
 
 CLIENT -> SERVER
 ---
-c: HEY 'id'  # send the existing id, or else "-"
-s: WELCOME 'id'  # answer to client with existing id or the new unique generated id.
+c: HEY <id>  # send the existing id, or else "-"
+s: WELCOME <id>  # answer to client with existing id or the new unique generated id.
 c: OK
 
-c: CONNECT own_ip own_port  # send the ip address and port we are listening to for incoming connections
+c: NAME <name>  # specify a nickname
 s: OK
 
-c: LIST number_of_files [\nfilea.txt] [\nfileb.txt] [...]  # send the list of the files you are sharing
+c: LIST <number_of_files> [\n<file_a>] [\n<file_b>] [...]  # send the list of the files you are sharing
 s: OK
 
-c: NAME "name"  # specify a nickname
+c: LISTENING <listening_ip> <listening_port>  # send the ip address and port we are listening to for incoming connections
 s: OK
 
-c: SENDLIST  # request the list with clients and the files they are sharing
-s: FULLLIST number_of_files [\nclient_name file.txt] [\nclient_name file.txt] [...]  # send the list of the clients and the files they are sharing
-c: OK
 # TODO
 # maybe optimize to this?
 # FULLLIST 3
-# kostas 2
+# john 2
 # a.txt
 # b.c
-# takis 1
+# jack 1
 # ab cd.py
+c: SENDLIST  # request the list with clients and the files they are sharing
+s: FULLLIST <number_of_files> [\n<client_a> <file_a>] [\n<client_a> <file_b>] [...] [\n<client_b> <file_a>] [\n<client_b> <file_c>] [...]  # send the list of the clients and the files they are sharing
+c: OK
+
+c: WHERE <client_name>
+s: AT <IP address> <port>
 
 
 SERVER -> CLIENT
@@ -55,5 +58,6 @@ SERVER -> CLIENT
 
 CLIENT -> CLIENT
 ---
-c: SHARE 'filename' 'clientname'
-p: OK
+c: GIVE <filename>
+p: HERE <file_size> \n <file buffer>
+c: THANKS
