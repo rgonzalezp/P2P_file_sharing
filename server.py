@@ -27,8 +27,8 @@ connected_clients = {}
 
 
 # NOTE
-# (incoming_buffer, previous_command) in "state" in FSM
-def converse(connection, client, incoming_buffer, previous_command):
+# (incoming_buffer, previous_server_command) in "state" in FSM
+def converse(connection, client, incoming_buffer, previous_server_command):
     global configuration_file
     global configuration
     global clients_file
@@ -36,7 +36,7 @@ def converse(connection, client, incoming_buffer, previous_command):
     global connected_clients
 
     if "\0" not in incoming_buffer:
-        return "", previous_command
+        return "", previous_server_command
     else:
         index = incoming_buffer.index("\0")
         message = incoming_buffer[0:index-1]
@@ -109,9 +109,9 @@ def converse(connection, client, incoming_buffer, previous_command):
 
         send_message(connection, fulllist_message)
 
-        converse(connection, client, incoming_buffer, "FULLLIST")
+        return converse(connection, client, incoming_buffer, "FULLLIST")
 
-    elif command == 'OK' and previous_command in ["WELCOME", "FULLLIST"]:
+    elif command == 'OK' and previous_server_command in ["WELCOME", "FULLLIST"]:
         return incoming_buffer, "OK"
 
     else:
@@ -129,7 +129,7 @@ def client_thread(connection, address):
 
     # start with an empty incoming messages buffer
     incoming_buffer = ""
-    previous_command = ""
+    previous_server_command = ""
 
     while True:
         incoming = connection.recv(4096)
@@ -138,15 +138,7 @@ def client_thread(connection, address):
         else:
             incoming_buffer += incoming
 
-        print()
-        print("connection, address, incoming_buffer, previous_command:")
-        print(connection, address, incoming_buffer, previous_command)
-        incoming_buffer, previous_command = converse(connection, address, incoming_buffer, previous_command)
-        print("incoming_buffer, previous_command:")
-        print(incoming_buffer, previous_command)
-
-
-        #incoming_buffer, previous_command = converse(connection, address, incoming_buffer, previous_command)
+        incoming_buffer, previous_server_command = converse(connection, address, incoming_buffer, previous_server_command)
 
 
 def server():
