@@ -8,6 +8,7 @@ import os
 import signal
 import socket
 import sys
+import Queue
 from threading import Thread
 
 from library.library import json_load
@@ -129,7 +130,7 @@ def peer_function(connection, address):
     pass
 
 
-def listen(listening_ip, listening_port):
+def listen(listening_ip, listening_port, queue):
     try:
         listening_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     except socket.error:
@@ -153,11 +154,8 @@ def listen(listening_ip, listening_port):
     # cli_output
     logging.info("client listening on {}:{}".format(listening_ip, str(listening_port)))
 
-
-    # TODO
-    # NEXT
-    # send the listening_ip and listening_port to the server via the main thread
-
+    # pass the listening_ip and listening_port to the main thread
+    queue.put( (listening_ip, listening_port) )
 
     # handle incoming peer connections
     peer_counter = 0
@@ -255,13 +253,22 @@ def main():
     listening_ip = configuration["listening_ip"]
     listening_port = configuration["listening_port"]
 
+    queue = Queue.Queue()
+
     # spawn listening thread
-    listening_thread = Thread(name="listening thread", target=listen,
-            args=(listening_ip, listening_port))
+    listening_thread = Thread(name="ListeningThread", target=listen,
+            args=(listening_ip, listening_port, queue))
     # TODO
     # handle differently, terminate gracefully
     listening_thread.daemon = True
     listening_thread.start()
+
+    listening_ip, listening_port = queue.get()
+
+    listening_message = "LISTENING {} {}\n\0".format(listening_ip, listening_port)
+    send_message(server, listening_message)
+
+    converse(server, incoming_buffer, "LISTENING")
 
 
     # send LIST command
