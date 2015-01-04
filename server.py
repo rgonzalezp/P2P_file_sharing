@@ -154,9 +154,9 @@ def server():
         configuration['max_id_offset'] = 0
         json_save(configuration_file, configuration)
     # DEBUG
+    print()
     print("configuration:")
     print(configuration)
-    print()
 
 
     if os.path.isfile(clients_file):
@@ -164,6 +164,7 @@ def server():
     else:
         json_save(clients_file, clients)
     # DEBUG
+    print()
     print("clients:")
     print(clients)
 
@@ -190,17 +191,22 @@ def server():
 
     # listen for incoming connections
     server_socket.listen(5)
-    print('server listening on port: ' + str(port))
     print()
+    print('server listening on port: ' + str(port))
 
-    # handle incoming connections
-    while True:
-        connection, address = server_socket.accept()
-        # DEBUG
-        print('a client connected with ' + address[0] + ':' + str(address[1]))
+    # handle incoming client connections
+    try:
+        while True:
+            connection, address = server_socket.accept()
+            # DEBUG
+            print('a client connected with ' + address[0] + ':' + str(address[1]))
 
-        client_thread = Thread(target=client_function, args=(connection, address))
-        client_thread.start()
+            client_thread = Thread(target=client_function, args=(connection, address))
+            client_thread.start()
+    except KeyboardInterrupt:
+        print()
+        print("CTRL-C received, exiting")
+        sys.exit(0)
 
 
 if __name__ == "__main__":

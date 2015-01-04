@@ -6,6 +6,7 @@ from __future__ import print_function
 import os
 import socket
 import sys
+from threading import Thread
 
 from library.library import json_load
 from library.library import json_save
@@ -103,6 +104,56 @@ def get_name(configuration_file, configuration):
     json_save(configuration_file, configuration)
 
 
+def peer_function(connection, address):
+    """
+    connection : connection socket
+    address : (IP_address, port)
+    """
+    pass
+
+
+def listen(listening_ip, listening_port):
+    try:
+        listening_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    except socket.error:
+        print('error, socket.socket')
+        sys.exit(-1)
+
+    # TODO
+    # replace with the equivalent code without using an offset
+    while True:
+        try:
+            listening_socket.bind( (listening_ip, listening_port) )
+            break
+        except socket.error:
+            # DEBUG
+            print("port {} in use, trying the next one".format(listening_port))
+            listening_port += 1
+
+    # listen for incoming connections
+    listening_socket.listen(5)
+    print('client listening on port: ' + str(listening_port))
+    print()
+
+
+    # TODO
+    # NEXT
+    # send the listening_ip and listening_port to the server via the main thread
+
+
+    # handle incoming peer connections
+    while True:
+        connection, address = listening_socket.accept()
+        # DEBUG
+        print('a peer connected with ' + address[0] + ':' + str(address[1]))
+
+        peer_thread = Thread(target=peer_function, args=(connection, address))
+        # TODO
+        # handle differently, terminate gracefully
+        peer_thread.daemon = True
+        peer_thread.start()
+
+
 def client():
     global configuration
 
@@ -166,6 +217,19 @@ def client():
     converse(server, incoming_buffer, "NAME")
 
 
+    # send LISTENING command
+    ############################################################################
+    listening_ip = configuration["listening_ip"]
+    listening_port = configuration["listening_port"]
+
+    # spawn listening thread
+    listening_thread = Thread(target=listen, args=(listening_ip, listening_port))
+    # TODO
+    # handle differently, terminate gracefully
+    listening_thread.daemon = True
+    listening_thread.start()
+
+
     # send LIST command
     ############################################################################
     list_message = "LIST {}\n".format(len(files_list))
@@ -186,23 +250,28 @@ def client():
 
     # options menu/loop
     ############################################################################
-    while True:
+    try:
+        while True:
+            print()
+            print("options:")
+            print("1: SENDLIST / s : request the list of clients and shared files")
+            print("2: QUIT / q : exit the program")
+
+            option = raw_input()
+            if option in ["1", "s", "S", "sendlist", "SENDLIST"]:
+                send_message(server, "SENDLIST " + "\n\0")
+
+                converse(server, incoming_buffer, "SENDLIST")
+
+            elif option in ["2", "q", "Q", "quit", "QUIT"]:
+                sys.exit(0)
+
+            else:
+                print("invalid option, try again")
+    except KeyboardInterrupt:
         print()
-        print("options:")
-        print("1: SENDLIST / s : request the list of clients and shared files")
-        print("2: QUIT / q : exit the program")
-
-        option = raw_input()
-        if option in ["1", "s", "S", "sendlist", "SENDLIST"]:
-            send_message(server, "SENDLIST " + "\n\0")
-
-            converse(server, incoming_buffer, "SENDLIST")
-
-        elif option in ["2", "q", "Q", "quit", "QUIT"]:
-            break
-
-        else:
-            print("invalid option, try again")
+        print("CTRL-C received, exiting")
+        sys.exit(0)
 
 
 if __name__ == "__main__":
