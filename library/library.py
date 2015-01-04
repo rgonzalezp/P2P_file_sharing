@@ -9,9 +9,6 @@ import json
 import socket
 
 
-logging.basicConfig(level=logging.DEBUG, format="[%(levelname)s] (%(threadName)s) %(message)s")
-
-
 def send_message(connection, message):
     try:
         connection.sendall(message)
@@ -19,7 +16,7 @@ def send_message(connection, message):
         logging.error("error, send_message")
         sys.exit(-1)
 
-    logging.debug("message sent: " + message)
+    logging.info("message sent: " + message)
 
 
 def json_load(json_file):

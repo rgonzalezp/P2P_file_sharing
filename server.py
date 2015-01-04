@@ -15,9 +15,6 @@ from library.library import json_save
 from library.library import send_message
 
 
-logging.basicConfig(level=logging.DEBUG, format="[%(levelname)s] (%(threadName)-10s) %(message)s")
-
-
 configuration_file = ""
 configuration = {}
 
@@ -32,7 +29,7 @@ connected_clients = {}
 def sigint_handler(signal, frame):
     # cli_output
     print()
-    logging.debug("CTRL-C received, exiting")
+    logging.info("CTRL-C received, exiting")
     sys.exit(0)
 
 
@@ -55,7 +52,7 @@ def converse(connection, client, incoming_buffer, own_previous_command):
         message = incoming_buffer[0:index-1]
         incoming_buffer = incoming_buffer[index+1:]
 
-    logging.debug("message received: " + str(message))
+    logging.info("message received: " + str(message))
 
     lines = message.split("\n")
     fields = lines[0].split()
@@ -81,7 +78,7 @@ def converse(connection, client, incoming_buffer, own_previous_command):
     elif command == "LIST":
         number_of_files = int(fields[1])
         if number_of_files != (len(lines) - 1):
-            logging.debug("invalid LIST message, wrong number of files")
+            logging.warning("invalid LIST message, wrong number of files")
             # TODO
             # send an error message, handle it in the client
             reply = "ERROR\n\0"
@@ -121,7 +118,7 @@ def converse(connection, client, incoming_buffer, own_previous_command):
     else:
         # TODO
         # handle invalid commands
-        logging.debug('an invalid command was received: "{}"'.format(command))
+        logging.warning('an invalid command was received: "{}"'.format(command))
         sys.exit(-1)
 
 
@@ -150,6 +147,16 @@ def main():
     global configuration
     global clients_file
     global clients
+
+    logging.basicConfig(level=logging.DEBUG,
+            format="[%(levelname)s] (%(threadName)s) %(message)s",
+            filename="server.log",
+            filemode="w")
+    console = logging.StreamHandler()
+    console.setLevel(logging.INFO)
+    formatter = logging.Formatter("[%(levelname)s] (%(threadName)s) %(message)s")
+    console.setFormatter(formatter)
+    logging.getLogger("").addHandler(console)
 
     configuration_file = "configuration.json"
     clients_file = "clients.json"
@@ -189,20 +196,22 @@ def main():
             server_socket.bind( (host, port) )
             break
         except socket.error:
+            # TODO
+            # this will be an error in production, i.e. the port must be specific
             logging.debug("port {} in use, trying the next one".format(port))
             port += 1
 
     # listen for incoming connections
     server_socket.listen(5)
     # cli_output
-    logging.debug("server listening on port {}".format(str(port)))
+    logging.info("server listening on port " + str(port))
 
     # handle incoming client connections
     client_counter = 0
     while True:
         connection, address = server_socket.accept()
         # cli_output
-        logging.debug("a client connected from {}:{}".format(address[0], str(address[1])))
+        logging.info("a client connected from {}:{}".format(address[0], str(address[1])))
 
         client_thread = Thread(name="client {}".format(client_counter),
                 target=client_function, args=(connection, address))

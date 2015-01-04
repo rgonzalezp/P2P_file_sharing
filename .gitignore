@@ -9,6 +9,10 @@
 # JSON files
 *.json
 
+# log files
+*.log
+
 notes.txt
+
 *.pdf
 *.*~

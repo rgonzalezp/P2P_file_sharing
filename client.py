@@ -15,9 +15,6 @@ from library.library import json_save
 from library.library import send_message
 
 
-logging.basicConfig(level=logging.DEBUG, format="[%(levelname)s] (%(threadName)s) %(message)s")
-
-
 configuration_file = ""
 configuration = {}
 
@@ -25,7 +22,7 @@ configuration = {}
 def sigint_handler(signal, frame):
     # cli_output
     print()
-    logging.debug("CTRL-C received, exiting")
+    logging.info("CTRL-C received, exiting")
     sys.exit(0)
 
 
@@ -43,7 +40,7 @@ def converse(server, incoming_buffer, own_previous_command):
         message = incoming_buffer[0:index-1]
         incoming_buffer = incoming_buffer[index+1:]
 
-    logging.debug("message received: " + message)
+    logging.info("message received: " + message)
 
     lines = message.split("\n")
     fields = lines[0].split()
@@ -60,7 +57,7 @@ def converse(server, incoming_buffer, own_previous_command):
         number_of_files = int(fields[1])
 
         if number_of_files != (len(lines) - 1):
-            logging.debug("invalid FULLLIST message, wrong number of files")
+            logging.warning("invalid FULLLIST message, wrong number of files")
             # TODO
             # send an error message, handle it in the server
             reply = "ERROR\n\0"
@@ -78,7 +75,7 @@ def converse(server, incoming_buffer, own_previous_command):
     else:
         # TODO
         # handle invalid commands
-        logging.debug('an invalid command was received: "{}"'.format(command))
+        logging.warning('an invalid command was received: "{}"'.format(command))
         sys.exit(-1)
 
 
@@ -97,12 +94,11 @@ def connection_init(address):
         try:
             connection.connect( (ip, port) )
             # cli_output
-            logging.debug("connected to server {}:{}".format(ip, port))
+            logging.info("connected to server {}:{}".format(ip, port))
             break
         except socket.error:
             # TODO
             # this will be an error in production, i.e. the port must be specific
-            # cli_output
             logging.debug("failed to connect to port {}, trying the next one".format(port))
             port += 1
 
@@ -143,14 +139,15 @@ def listen(listening_ip, listening_port):
             listening_socket.bind( (listening_ip, listening_port) )
             break
         except socket.error:
-            # cli_output
+            # TODO
+            # this will be an error in production, i.e. the port must be specific
             logging.debug("port {} in use, trying the next one".format(listening_port))
             listening_port += 1
 
     # listen for incoming connections
     listening_socket.listen(5)
     # cli_output
-    logging.debug("client listening on port: " + str(listening_port))
+    logging.info("client listening on port " + str(listening_port))
 
 
     # TODO
@@ -163,7 +160,7 @@ def listen(listening_ip, listening_port):
     while True:
         connection, address = listening_socket.accept()
         # cli_output
-        logging.debug("a peer connected from {}:{}".format(address[0], str(address[1])))
+        logging.info("a peer connected from {}:{}".format(address[0], str(address[1])))
 
         peer_thread = Thread(name="peer {}".format(peer_counter),
                 target=peer_function, args=(connection, address))
@@ -177,6 +174,7 @@ def listen(listening_ip, listening_port):
 
 def main():
     global configuration
+    global configuration_file
 
     # check if an argument was passed
     if len(sys.argv) < 2:
@@ -190,7 +188,17 @@ def main():
 
     working_directory = argument
 
-    global configuration_file
+    logging.basicConfig(level=logging.DEBUG,
+            format="[%(levelname)s] (%(threadName)s) %(message)s",
+            filename=working_directory + "/client.log",
+            filemode="w")
+    console = logging.StreamHandler()
+    console.setLevel(logging.INFO)
+    formatter = logging.Formatter("[%(levelname)s] (%(threadName)s) %(message)s")
+    console.setFormatter(formatter)
+    logging.getLogger("").addHandler(console)
+
+
     configuration_file = working_directory + "/configuration.json"
 
     if os.path.isfile(configuration_file):
