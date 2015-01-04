@@ -15,6 +15,10 @@ from library.library import json_save
 from library.library import send_message
 
 
+#DEBUG = True
+DEBUG = False
+
+
 configuration_file = ""
 configuration = {}
 
@@ -153,7 +157,10 @@ def main():
             filename="server.log",
             filemode="w")
     console = logging.StreamHandler()
-    console.setLevel(logging.INFO)
+    if DEBUG:
+        console.setLevel(logging.DEBUG)
+    else:
+        console.setLevel(logging.INFO)
     formatter = logging.Formatter("[%(levelname)s] (%(threadName)s) %(message)s")
     console.setFormatter(formatter)
     logging.getLogger("").addHandler(console)
@@ -204,7 +211,7 @@ def main():
     # listen for incoming connections
     server_socket.listen(5)
     # cli_output
-    logging.info("server listening on port " + str(port))
+    logging.info("server listening on {}:{}".format(host, str(port)))
 
     # handle incoming client connections
     client_counter = 0
