@@ -17,13 +17,11 @@ configuration_file = ""
 configuration = {}
 
 clients_file = ""
-# {client_id: {'name': name, 'files': [list of shared files], listening_connection: (IP_address, port)}}
+# {client_id: {name: name, files: [shared files], listening_connection: (IP_address, port)}}
 clients = {}
 
 # {(IP_address, port): client_id}
 connected_clients = {}
-# connected_clients[ (old_IP_address, old_port) ] -> client_id
-# connected_clients[ (new_IP_address, new_port) ] -> client_id
 
 
 # NOTE
@@ -74,7 +72,7 @@ def converse(connection, client, incoming_buffer, own_previous_command):
         if number_of_files != (len(lines) - 1):
             print("error, wrong number of files")
             # TODO
-            #to reply den to xrisimopoioume kapou, logika tha eprepe na to epistrefoume kai na to anagnwrizei o client
+            # send an error message, handle it in the client
             reply = "ERROR\n\0"
         else:
             clients[connected_clients[client]]["files"] = lines[1:]

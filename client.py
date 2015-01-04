@@ -47,7 +47,7 @@ def converse(server, incoming_buffer, own_previous_command):
         if number_of_files != (len(lines) - 1):
             print("error, wrong number of files")
             # TODO
-            #to reply den to xrisimopoioume kapou, logika tha eprepe na to epistrefoume kai na to anagnwrizei o client
+            # send an error message, handle it in the server
             reply = "ERROR\n\0"
         else:
             print()
@@ -157,6 +157,15 @@ def client():
     incoming_buffer = converse(server, incoming_buffer, "HEY")
 
 
+    # send NAME command
+    ############################################################################
+    if "name" not in configuration:
+        get_name(configuration_file, configuration)
+    send_message(server, "NAME " + configuration["name"] + "\n\0")
+
+    converse(server, incoming_buffer, "NAME")
+
+
     # send LIST command
     ############################################################################
     list_message = "LIST {}\n".format(len(files_list))
@@ -168,15 +177,6 @@ def client():
     converse(server, incoming_buffer, "LIST")
 
 
-    # send NAME command
-    ############################################################################
-    if "name" not in configuration:
-        get_name(configuration_file, configuration)
-    send_message(server, "NAME " + configuration["name"] + "\n\0")
-
-    converse(server, incoming_buffer, "NAME")
-
-
      # send SENDLIST command
     ############################################################################
     send_message(server, "SENDLIST " + "\n\0")
@@ -184,7 +184,7 @@ def client():
     converse(server, incoming_buffer, "SENDLIST")
 
 
-    # enter the options menu/loop
+    # options menu/loop
     ############################################################################
     while True:
         print()
