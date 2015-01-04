@@ -4,6 +4,7 @@
 
 from __future__ import print_function
 import os
+import signal
 import socket
 import sys
 from threading import Thread
@@ -15,6 +16,15 @@ from library.library import send_message
 
 configuration_file = ""
 configuration = {}
+
+
+def sigint_handler(signal, frame):
+    print()
+    print("CTRL-C received, exiting")
+    sys.exit(0)
+
+
+signal.signal(signal.SIGINT, sigint_handler)
 
 
 def converse(server, incoming_buffer, own_previous_command):
@@ -250,28 +260,23 @@ def client():
 
     # options menu/loop
     ############################################################################
-    try:
-        while True:
-            print()
-            print("options:")
-            print("1: SENDLIST / s : request the list of clients and shared files")
-            print("2: QUIT / q : exit the program")
-
-            option = raw_input()
-            if option in ["1", "s", "S", "sendlist", "SENDLIST"]:
-                send_message(server, "SENDLIST " + "\n\0")
-
-                converse(server, incoming_buffer, "SENDLIST")
-
-            elif option in ["2", "q", "Q", "quit", "QUIT"]:
-                sys.exit(0)
-
-            else:
-                print("invalid option, try again")
-    except KeyboardInterrupt:
+    while True:
         print()
-        print("CTRL-C received, exiting")
-        sys.exit(0)
+        print("options:")
+        print("1: SENDLIST / s : request the list of clients and shared files")
+        print("2: QUIT / q : exit the program")
+
+        option = raw_input()
+        if option in ["1", "s", "S", "sendlist", "SENDLIST"]:
+            send_message(server, "SENDLIST " + "\n\0")
+
+            converse(server, incoming_buffer, "SENDLIST")
+
+        elif option in ["2", "q", "Q", "quit", "QUIT"]:
+            sys.exit(0)
+
+        else:
+            print("invalid option, try again")
 
 
 if __name__ == "__main__":

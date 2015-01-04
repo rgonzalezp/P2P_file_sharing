@@ -4,6 +4,7 @@
 
 from __future__ import print_function
 import os
+import signal
 import socket
 import sys
 from threading import Thread
@@ -22,6 +23,15 @@ clients = {}
 
 # {(IP_address, port): client_id}
 connected_clients = {}
+
+
+def sigint_handler(signal, frame):
+    print()
+    print("CTRL-C received, exiting")
+    sys.exit(0)
+
+
+signal.signal(signal.SIGINT, sigint_handler)
 
 
 # NOTE
@@ -195,18 +205,13 @@ def server():
     print('server listening on port: ' + str(port))
 
     # handle incoming client connections
-    try:
-        while True:
-            connection, address = server_socket.accept()
-            # DEBUG
-            print('a client connected with ' + address[0] + ':' + str(address[1]))
+    while True:
+        connection, address = server_socket.accept()
+        # DEBUG
+        print('a client connected with ' + address[0] + ':' + str(address[1]))
 
-            client_thread = Thread(target=client_function, args=(connection, address))
-            client_thread.start()
-    except KeyboardInterrupt:
-        print()
-        print("CTRL-C received, exiting")
-        sys.exit(0)
+        client_thread = Thread(target=client_function, args=(connection, address))
+        client_thread.start()
 
 
 if __name__ == "__main__":
