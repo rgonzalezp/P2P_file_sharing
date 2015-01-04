@@ -3,6 +3,7 @@
 
 
 from __future__ import print_function
+import logging
 import os
 import signal
 import socket
@@ -12,6 +13,9 @@ from threading import Thread
 from library.library import json_load
 from library.library import json_save
 from library.library import send_message
+
+
+logging.basicConfig(level=logging.DEBUG, format="[%(levelname)s] (%(threadName)-10s) %(message)s")
 
 
 configuration_file = ""
@@ -26,8 +30,9 @@ connected_clients = {}
 
 
 def sigint_handler(signal, frame):
+    # cli_output
     print()
-    print("CTRL-C received, exiting")
+    logging.debug("CTRL-C received, exiting")
     sys.exit(0)
 
 
@@ -49,16 +54,14 @@ def converse(connection, client, incoming_buffer, own_previous_command):
         index = incoming_buffer.index("\0")
         message = incoming_buffer[0:index-1]
         incoming_buffer = incoming_buffer[index+1:]
-    # DEBUG
-    print("message received:")
-    print(message)
-    print()
 
-    lines = message.split('\n')
+    logging.debug("message received: " + str(message))
+
+    lines = message.split("\n")
     fields = lines[0].split()
     command = fields[0]
 
-    if command == 'HEY':
+    if command == "HEY":
         client_id = fields[1]
         if client_id == "-":
             configuration["max_id_offset"] += 1
@@ -70,17 +73,15 @@ def converse(connection, client, incoming_buffer, own_previous_command):
 
         connected_clients[client] = client_id
 
-        # DEBUG
-        print("connected_clients:")
-        print(connected_clients)
+        logging.debug("connected_clients: " + str(connected_clients))
 
         send_message(connection, "WELCOME " + client_id + "\n\0")
         return converse(connection, client, incoming_buffer, "WELCOME")
 
-    elif command == 'LIST':
+    elif command == "LIST":
         number_of_files = int(fields[1])
         if number_of_files != (len(lines) - 1):
-            print("error, wrong number of files")
+            logging.debug("invalid LIST message, wrong number of files")
             # TODO
             # send an error message, handle it in the client
             reply = "ERROR\n\0"
@@ -90,40 +91,37 @@ def converse(connection, client, incoming_buffer, own_previous_command):
         send_message(connection, "OK\n\0")
         return incoming_buffer, "OK"
 
-    elif command == 'NAME':
-        print(fields)
+    elif command == "NAME":
         clients[connected_clients[client]]["name"] = fields[1]
         json_save(clients_file, clients)
         send_message(connection, "OK\n\0")
 
-        # DEBUG
-        print("clients:")
-        print(clients)
+        logging.debug("clients: " + str(clients))
 
         return incoming_buffer, "OK"
 
-    elif command == 'SENDLIST':
+    elif command == "SENDLIST":
         number_of_all_clients_files = 0
         for client in clients:
             number_of_all_clients_files += len(clients[client]["files"])
         fulllist_message = "FULLLIST {}\n".format(number_of_all_clients_files)
         for client in clients:
             for file_ in clients[client]["files"]:
-                fulllist_message += clients[client]["name"] + " " + file_ + '\n'
+                fulllist_message += clients[client]["name"] + " " + file_ + "\n"
 
-        fulllist_message += '\0'
+        fulllist_message += "\0"
 
         send_message(connection, fulllist_message)
 
         return converse(connection, client, incoming_buffer, "FULLLIST")
 
-    elif command == 'OK' and own_previous_command in ["WELCOME", "FULLLIST"]:
+    elif command == "OK" and own_previous_command in ["WELCOME", "FULLLIST"]:
         return incoming_buffer, "OK"
 
     else:
         # TODO
         # handle invalid commands
-        print("error, invalid command")
+        logging.debug('an invalid command was received: "{}"'.format(command))
         sys.exit(-1)
 
 
@@ -147,7 +145,7 @@ def client_function(connection, address):
         incoming_buffer, own_previous_command = converse(connection, address, incoming_buffer, own_previous_command)
 
 
-def server():
+def main():
     global configuration_file
     global configuration
     global clients_file
@@ -161,28 +159,24 @@ def server():
     else:
         configuration["host"] = "localhost"
         configuration["port"] = 5000
-        configuration['max_id_offset'] = 0
+        configuration["max_id_offset"] = 0
         json_save(configuration_file, configuration)
-    # DEBUG
-    print()
-    print("configuration:")
-    print(configuration)
+
+    logging.debug("configuration: " + str(configuration))
 
 
     if os.path.isfile(clients_file):
         clients = json_load(clients_file)
     else:
         json_save(clients_file, clients)
-    # DEBUG
-    print()
-    print("clients:")
-    print(clients)
+
+    logging.debug("clients: " + str(clients))
 
 
     try:
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     except socket.error:
-        print('error, socket.socket')
+        logging.error("socket.socket error")
         sys.exit(-1)
 
     host = configuration["host"]
@@ -195,24 +189,30 @@ def server():
             server_socket.bind( (host, port) )
             break
         except socket.error:
-            # DEBUG
-            print("port {} in use, trying the next one".format(port))
+            logging.debug("port {} in use, trying the next one".format(port))
             port += 1
 
     # listen for incoming connections
     server_socket.listen(5)
-    print()
-    print('server listening on port: ' + str(port))
+    # cli_output
+    logging.debug("server listening on port {}".format(str(port)))
 
     # handle incoming client connections
+    client_counter = 0
     while True:
         connection, address = server_socket.accept()
-        # DEBUG
-        print('a client connected with ' + address[0] + ':' + str(address[1]))
+        # cli_output
+        logging.debug("a client connected from {}:{}".format(address[0], str(address[1])))
 
-        client_thread = Thread(target=client_function, args=(connection, address))
+        client_thread = Thread(name="client {}".format(client_counter),
+                target=client_function, args=(connection, address))
+        # TODO
+        # handle differently, terminate gracefully
+        client_thread.daemon = True
         client_thread.start()
+
+        client_counter += 1
 
 
 if __name__ == "__main__":
-    server()
+    main()

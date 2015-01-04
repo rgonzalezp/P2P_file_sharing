@@ -3,6 +3,7 @@
 
 
 from __future__ import print_function
+import logging
 import os
 import signal
 import socket
@@ -14,13 +15,17 @@ from library.library import json_save
 from library.library import send_message
 
 
+logging.basicConfig(level=logging.DEBUG, format="[%(levelname)s] (%(threadName)s) %(message)s")
+
+
 configuration_file = ""
 configuration = {}
 
 
 def sigint_handler(signal, frame):
+    # cli_output
     print()
-    print("CTRL-C received, exiting")
+    logging.debug("CTRL-C received, exiting")
     sys.exit(0)
 
 
@@ -37,43 +42,43 @@ def converse(server, incoming_buffer, own_previous_command):
         index = incoming_buffer.index("\0")
         message = incoming_buffer[0:index-1]
         incoming_buffer = incoming_buffer[index+1:]
-    # DEBUG
-    print("message received:")
-    print(message)
 
-    lines = message.split('\n')
+    logging.debug("message received: " + message)
+
+    lines = message.split("\n")
     fields = lines[0].split()
     command = fields[0]
 
-    if command == 'WELCOME':
+    if command == "WELCOME":
         id_ = fields[1]
         configuration["id"] = id_
         json_save(configuration_file, configuration)
         send_message(server, "OK\n\0")
         return incoming_buffer
 
-    elif command == 'FULLLIST' and own_previous_command == "SENDLIST":
+    elif command == "FULLLIST" and own_previous_command == "SENDLIST":
         number_of_files = int(fields[1])
 
         if number_of_files != (len(lines) - 1):
-            print("error, wrong number of files")
+            logging.debug("invalid FULLLIST message, wrong number of files")
             # TODO
             # send an error message, handle it in the server
             reply = "ERROR\n\0"
         else:
+            # cli_output
             print()
             print("full list of clients' files")
             for line in lines[1:]:
                 print(line)
             send_message(server, "OK\n\0")
 
-    elif command == 'OK' and own_previous_command in ("LIST", "NAME"):
+    elif command == "OK" and own_previous_command in ("LIST", "NAME"):
         return incoming_buffer
 
     else:
         # TODO
         # handle invalid commands
-        print("error, invalid command")
+        logging.debug('an invalid command was received: "{}"'.format(command))
         sys.exit(-1)
 
 
@@ -83,7 +88,7 @@ def connection_init(address):
     try:
         connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     except socket.error:
-        print('error, socket.socket')
+        logging.error("socket.socket error")
         sys.exit(-1)
 
     # TODO
@@ -91,26 +96,28 @@ def connection_init(address):
     while True:
         try:
             connection.connect( (ip, port) )
-            # DEBUG
-            print("connected to server {}:{}".format(ip, port))
-            print()
+            # cli_output
+            logging.debug("connected to server {}:{}".format(ip, port))
             break
         except socket.error:
-            # DEBUG
-            print("failed to connect to port {}, trying the next one".format(port))
+            # TODO
+            # this will be an error in production, i.e. the port must be specific
+            # cli_output
+            logging.debug("failed to connect to port {}, trying the next one".format(port))
             port += 1
 
     return connection
 
 
 def get_name(configuration_file, configuration):
-    print('Specify a user name (press enter for default "{}"): '.format(configuration["id"]))
+    # cli_output
+    print('Specify a user name (press enter for the default "{}"): '.format(configuration["id"]))
     name = raw_input()
 
     if name == "":
         name = configuration["id"]
 
-    configuration['name'] = name
+    configuration["name"] = name
     json_save(configuration_file, configuration)
 
 
@@ -126,7 +133,7 @@ def listen(listening_ip, listening_port):
     try:
         listening_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     except socket.error:
-        print('error, socket.socket')
+        logging.error("socket.socket error")
         sys.exit(-1)
 
     # TODO
@@ -136,14 +143,14 @@ def listen(listening_ip, listening_port):
             listening_socket.bind( (listening_ip, listening_port) )
             break
         except socket.error:
-            # DEBUG
-            print("port {} in use, trying the next one".format(listening_port))
+            # cli_output
+            logging.debug("port {} in use, trying the next one".format(listening_port))
             listening_port += 1
 
     # listen for incoming connections
     listening_socket.listen(5)
-    print('client listening on port: ' + str(listening_port))
-    print()
+    # cli_output
+    logging.debug("client listening on port: " + str(listening_port))
 
 
     # TODO
@@ -152,24 +159,29 @@ def listen(listening_ip, listening_port):
 
 
     # handle incoming peer connections
+    peer_counter = 0
     while True:
         connection, address = listening_socket.accept()
-        # DEBUG
-        print('a peer connected with ' + address[0] + ':' + str(address[1]))
+        # cli_output
+        logging.debug("a peer connected from {}:{}".format(address[0], str(address[1])))
 
-        peer_thread = Thread(target=peer_function, args=(connection, address))
+        peer_thread = Thread(name="peer {}".format(peer_counter),
+                target=peer_function, args=(connection, address))
         # TODO
         # handle differently, terminate gracefully
         peer_thread.daemon = True
         peer_thread.start()
 
+        peer_counter += 1
 
-def client():
+
+def main():
     global configuration
 
     # check if an argument was passed
     if len(sys.argv) < 2:
-        print("please pass the user id")
+        # cli_output
+        print("please pass the working directory")
         sys.exit(-1)
 
     argument = sys.argv[1]
@@ -191,17 +203,13 @@ def client():
         configuration["id"] = "-"
         configuration["share_directory"] = "share"
         json_save(configuration_file, configuration)
-    # DEBUG
-    print("configuration:")
-    print(configuration)
-    print()
+
+    logging.debug("configuration: " + str(configuration))
 
     share_directory = working_directory + "/" + configuration["share_directory"]
     files_list = [ file_ for file_ in os.listdir(share_directory) if os.path.isfile(os.path.join(share_directory, file_)) ]
-    # DEBUG
-    print("files_list:")
-    print(files_list)
-    print()
+
+    logging.debug("files_list: " + str(files_list))
 
     server_address = (configuration["server_host"], configuration["server_port"])
     server = connection_init(server_address)
@@ -233,7 +241,8 @@ def client():
     listening_port = configuration["listening_port"]
 
     # spawn listening thread
-    listening_thread = Thread(target=listen, args=(listening_ip, listening_port))
+    listening_thread = Thread(name="listening thread", target=listen,
+            args=(listening_ip, listening_port))
     # TODO
     # handle differently, terminate gracefully
     listening_thread.daemon = True
@@ -244,8 +253,8 @@ def client():
     ############################################################################
     list_message = "LIST {}\n".format(len(files_list))
     for file_ in files_list:
-        list_message += file_ + '\n'
-    list_message += '\0'
+        list_message += file_ + "\n"
+    list_message += "\0"
     send_message(server, list_message)
 
     converse(server, incoming_buffer, "LIST")
@@ -280,4 +289,4 @@ def client():
 
 
 if __name__ == "__main__":
-    client()
+    main()
