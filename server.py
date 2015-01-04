@@ -79,6 +79,15 @@ def converse(connection, client, incoming_buffer, own_previous_command):
         send_message(connection, "WELCOME " + client_id + "\n\0")
         return converse(connection, client, incoming_buffer, "WELCOME")
 
+    elif command == "NAME":
+        clients[connected_clients[client]]["name"] = fields[1]
+        json_save(clients_file, clients)
+        send_message(connection, "OK\n\0")
+
+        logging.debug("clients: " + str(clients))
+
+        return incoming_buffer, "OK"
+
     elif command == "LIST":
         number_of_files = int(fields[1])
         if number_of_files != (len(lines) - 1):
@@ -90,15 +99,6 @@ def converse(connection, client, incoming_buffer, own_previous_command):
             clients[connected_clients[client]]["files"] = lines[1:]
             json_save(clients_file, clients)
         send_message(connection, "OK\n\0")
-        return incoming_buffer, "OK"
-
-    elif command == "NAME":
-        clients[connected_clients[client]]["name"] = fields[1]
-        json_save(clients_file, clients)
-        send_message(connection, "OK\n\0")
-
-        logging.debug("clients: " + str(clients))
-
         return incoming_buffer, "OK"
 
     elif command == "SENDLIST":
