@@ -427,7 +427,7 @@ def main():
 
             send_message(server, "WHERE " + client + "\n\0")
 
-            (peer_ip, peer_port), incoming_buffer = converse(server, incoming_buffer, "WHEREs")
+            (peer_ip, peer_port), incoming_buffer = converse(server, incoming_buffer, "WHERE")
 
             peer = connection_init( (peer_ip, peer_port) )
 
