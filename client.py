@@ -74,7 +74,7 @@ def converse(server, incoming_buffer, own_previous_command):
                 print(line)
             send_message(server, "OK\n\0")
 
-    elif command == "OK" and own_previous_command in ("LIST", "NAME"):
+    elif command == "OK" and own_previous_command in ("NAME", "LIST", "LISTENING"):
         return incoming_buffer
 
     else:

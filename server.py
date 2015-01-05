@@ -15,15 +15,15 @@ from library.library import json_save
 from library.library import send_message
 
 
-#DEBUG = True
-DEBUG = False
+DEBUG = True
+#DEBUG = False
 
 
 configuration_file = ""
 configuration = {}
 
 clients_file = ""
-# {client_id: {name: name, files: [shared files], listening_connection: (IP_address, port)}}
+# {client_id: {name: name, files: [shared files], IP_address: IP_address, port: port}}
 clients = {}
 
 # {(IP_address, port): client_id}
@@ -69,7 +69,7 @@ def converse(connection, client, incoming_buffer, own_previous_command):
             json_save(configuration_file, configuration)
             client_id = "user_{0:0>4}".format(configuration["max_id_offset"])
 
-            clients[client_id] = {"name": "", "files": [], "listening_connection": None}
+            clients[client_id] = {"name": "", "files": [], "listening_ip": "", "listening_port": None}
             json_save(clients_file, clients)
 
         connected_clients[client] = client_id
@@ -98,6 +98,16 @@ def converse(connection, client, incoming_buffer, own_previous_command):
         else:
             clients[connected_clients[client]]["files"] = lines[1:]
             json_save(clients_file, clients)
+        send_message(connection, "OK\n\0")
+        return incoming_buffer, "OK"
+
+    elif command == "LISTENING":
+        clients[connected_clients[client]]["listening_ip"] = fields[1]
+        clients[connected_clients[client]]["listening_port"] = fields[2]
+        json_save(clients_file, clients)
+
+        logging.debug("clients: " + str(clients))
+
         send_message(connection, "OK\n\0")
         return incoming_buffer, "OK"
 

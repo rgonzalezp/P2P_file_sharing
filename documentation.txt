@@ -30,10 +30,10 @@ c: OK
 c: NAME <name>  # specify a nickname
 s: OK
 
-c: LIST <number_of_files> [\n<file_a>] [\n<file_b>] [...]  # send the list of the files you are sharing
+c: LISTENING <listening_ip> <listening_port>  # send the ip address and port we are listening to for incoming connections
 s: OK
 
-c: LISTENING <listening_ip> <listening_port>  # send the ip address and port we are listening to for incoming connections
+c: LIST <number_of_files> [\n<file_a>] [\n<file_b>] [...]  # send the list of the files you are sharing
 s: OK
 
 # TODO
