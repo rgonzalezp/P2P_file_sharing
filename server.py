@@ -23,10 +23,10 @@ configuration_file = ""
 configuration = {}
 
 clients_file = ""
-# {client_id: {name: name, files: [shared files], listening_IP_address: listening_IP_address, listening_port: listening_port}}
+# {username: {files: [shared files], listening_IP_address: listening_IP_address, listening_port: listening_port}}
 clients = {}
 
-# {(IP_address, port): client_id}
+# {(IP_address, port): username}
 connected_clients = {}
 
 
@@ -63,30 +63,53 @@ def converse(connection, client, incoming_buffer, own_previous_command):
     command = fields[0]
 
     if command == "HELLO":
-        client_id = fields[1]
-        if client_id == "-":
-            configuration["max_id_offset"] += 1
+        if len(fields) == 1:
+            configuration["username_offset"] += 1
             json_save(configuration_file, configuration)
-            client_id = "user_{0:0>4}".format(configuration["max_id_offset"])
 
-            clients[client_id] = {"name": "", "files": [], "listening_ip": "", "listening_port": None}
+            username = "user_{0:0>3}".format(configuration["username_offset"])
+
+            send_message(connection, "AVAILABLE " + username + "\n\0")
+            return converse(connection, client, incoming_buffer, "AVAILABLE")
+        else:
+            username = fields[1]
+            if username in clients:
+                send_message(connection, "WELCOME " + username + "\n\0")
+                return converse(connection, client, incoming_buffer, "WELCOME")
+            else:
+                configuration["username_offset"] += 1
+                json_save(configuration_file, configuration)
+
+                username = "user_{0:0>3}".format(configuration["username_offset"])
+
+                connected_clients[client] = username
+                logging.debug("connected_clients: " + str(connected_clients))
+
+                send_message(connection, "AVAILABLE " + username + "\n\0")
+                return converse(connection, client, incoming_buffer, "AVAILABLE")
+
+    elif command == "IWANT":
+        username = fields[1]
+        if username in clients:
+            configuration["username_offset"] += 1
+            json_save(configuration_file, configuration)
+
+            username = "user_{0:0>3}".format(configuration["username_offset"])
+
+            send_message(connection, "AVAILABLE " + username + "\n\0")
+            return converse(connection, client, incoming_buffer, "AVAILABLE")
+        else:
+            clients[username] = {"files": [], "listening_ip": "", "listening_port": None}
             json_save(clients_file, clients)
 
-        connected_clients[client] = client_id
+            logging.debug("clients: " + str(clients))
 
-        logging.debug("connected_clients: " + str(connected_clients))
+            connected_clients[client] = username
+            logging.debug("connected_clients: " + str(connected_clients))
 
-        send_message(connection, "WELCOME " + client_id + "\n\0")
-        return converse(connection, client, incoming_buffer, "WELCOME")
+            send_message(connection, "WELCOME " + username + "\n\0")
 
-    elif command == "NAME":
-        clients[connected_clients[client]]["name"] = fields[1]
-        json_save(clients_file, clients)
-        send_message(connection, "OK\n\0")
-
-        logging.debug("clients: " + str(clients))
-
-        return incoming_buffer, "OK"
+            return incoming_buffer, "WELCOME"
 
     elif command == "LISTENING":
         clients[connected_clients[client]]["listening_ip"] = fields[1]
@@ -112,12 +135,12 @@ def converse(connection, client, incoming_buffer, own_previous_command):
 
     elif command == "SENDLIST":
         number_of_all_clients_files = 0
-        for client in clients:
-            number_of_all_clients_files += len(clients[client]["files"])
+        for client_ in clients:
+            number_of_all_clients_files += len(clients[client_]["files"])
         fulllist_message = "FULLLIST {}\n".format(number_of_all_clients_files)
-        for client in clients:
-            for file_ in clients[client]["files"]:
-                fulllist_message += clients[client]["name"] + " " + file_ + "\n"
+        for client_ in clients:
+            for file_ in clients[client_]["files"]:
+                fulllist_message += client_ + " " + file_ + "\n"
 
         fulllist_message += "\0"
 
@@ -128,27 +151,20 @@ def converse(connection, client, incoming_buffer, own_previous_command):
     elif command == "WHERE":
         peer = fields[1]
 
-        if peer in [value["name"] for value in clients.values()]:
-            for peer_id in clients:
-                if peer == clients[peer_id]["name"]:
-                    peer_ip = clients[peer]["listening_ip"]
-                    #print(peer_ip)
-                    peer_port = clients[peer]["listening_port"]
+        if peer in clients:
+            peer_ip = clients[peer]["listening_ip"]
+            peer_port = clients[peer]["listening_port"]
 
             at_message = "AT {} {}\n\0".format(peer_ip, peer_port)
             send_message(connection, at_message)
-
             return incoming_buffer, "WHERE"
         else:
-            send_message(connection, "ERROR\n\0")
-            sys.exit(-1)
+            send_message(connection, "UNKNOWN\n\0")
+            return incoming_buffer, "UNKNOWN"
 
-    elif command == "OK" and own_previous_command in ["WELCOME", "FULLLIST"]:
-        return incoming_buffer, "OK"
-
-    elif command == "ERROR":
-        logging.warning("ERROR message received, exiting")
-        sys.exit(-1)
+    #elif command == "ERROR":
+    #    logging.warning("ERROR message received, exiting")
+    #    sys.exit(-1)
 
     else:
         # TODO
@@ -204,7 +220,7 @@ def main():
     else:
         configuration["host"] = "localhost"
         configuration["port"] = 5000
-        configuration["max_id_offset"] = 0
+        configuration["username_offset"] = 0
         json_save(configuration_file, configuration)
 
     logging.debug("configuration: " + str(configuration))

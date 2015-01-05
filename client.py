@@ -53,11 +53,19 @@ def converse(server, incoming_buffer, own_previous_command):
     fields = lines[0].split()
     command = fields[0]
 
-    if command == "WELCOME":
-        id_ = fields[1]
-        configuration["id"] = id_
+    if command == "AVAILABLE":
+        username = fields[1]
+        username = get_name(username)
+
+        send_message(server, "IWANT " + username + "\n\0")
+
+        return converse(server, incoming_buffer, "IWANT")
+
+    elif command == "WELCOME":
+        username = fields[1]
+        configuration["username"] = username
         json_save(configuration_file, configuration)
-        send_message(server, "OK\n\0")
+
         return None, incoming_buffer
 
     elif command == "FULLLIST" and own_previous_command == "SENDLIST":
@@ -75,7 +83,6 @@ def converse(server, incoming_buffer, own_previous_command):
             print("full list of clients' files")
             for line in lines[1:]:
                 print(line)
-            send_message(server, "OK\n\0")
 
         return None, incoming_buffer
 
@@ -85,12 +92,12 @@ def converse(server, incoming_buffer, own_previous_command):
 
         return (peer_ip, peer_port), incoming_buffer
 
-    elif command == "OK" and own_previous_command in ("NAME", "LIST", "LISTENING"):
+    elif command == "OK" and own_previous_command in ("LIST", "LISTENING"):
         return None, incoming_buffer
 
-    elif command == "ERROR":
-        logging.warning("ERROR message received, exiting")
-        sys.exit(-1)
+    #elif command == "ERROR":
+    #    logging.warning("ERROR message received, exiting")
+    #    sys.exit(-1)
 
     else:
         # TODO
@@ -125,16 +132,15 @@ def connection_init(address):
     return connection
 
 
-def get_name(configuration_file, configuration):
+def get_name(username_):
     # cli_output
-    print('Specify a user name (press enter for the default "{}"): '.format(configuration["id"]))
-    name = raw_input()
+    print('Specify a username (press enter for the default "{}"): '.format(username_))
+    username = raw_input()
 
-    if name == "":
-        name = configuration["id"]
+    if username == "":
+        username = username_
 
-    configuration["name"] = name
-    json_save(configuration_file, configuration)
+    return username
 
 
 def peer_function(connection, address):
@@ -319,7 +325,6 @@ def main():
         configuration["server_port"] = 5000
         configuration["listening_ip"] = "localhost"
         configuration["listening_port"] = 10000 + (int(argument[-4:]) * 1000)
-        configuration["id"] = "-"
         configuration["share_directory"] = "share"
         json_save(configuration_file, configuration)
 
@@ -340,18 +345,12 @@ def main():
 
     # send HELLO command
     ############################################################################
-    send_message(server, "HELLO " + configuration["id"] + "\n\0")
+    if "username" in configuration:
+        send_message(server, "HELLO " + configuration["username"] + "\n\0")
+    else:
+        send_message(server, "HELLO\n\0")
 
     unneeded, incoming_buffer = converse(server, incoming_buffer, "HELLO")
-
-
-    # send NAME command
-    ############################################################################
-    if "name" not in configuration:
-        get_name(configuration_file, configuration)
-    send_message(server, "NAME " + configuration["name"] + "\n\0")
-
-    converse(server, incoming_buffer, "NAME")
 
 
     # send LISTENING command
@@ -411,19 +410,19 @@ def main():
             converse(server, incoming_buffer, "SENDLIST")
 
         elif option in ["2", "w", "W", "where", "WHERE"]:
-            print("Enter the name of the client:")
+            print("Enter the username of the client:")
 
             while True:
                 client = raw_input()
 
-                if client == configuration["name"]:
+                if client == configuration["username"]:
                     print("{} is you, try again: ".format(client))
                     continue
 
                 if client in [pair.split()[0] for pair in full_list_of_files]:
                     break
 
-                print("{} is an invalid client name, try again: ".format(client))
+                print("{} is an invalid client username, try again: ".format(client))
 
             send_message(server, "WHERE " + client + "\n\0")
 

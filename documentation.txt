@@ -1,10 +1,6 @@
 description
 ===
-1)xrisimopoiume ena arxeio ws library pou ginetai include k sto server k ston client kai periexei tis entoles tou protocol pou dimiourgisame
-o server ananewnei tin lista tou
-O server exei mia lista i opoia exei ws pedio namescl str , ip int, name of files , port, unique id : ip, port
-
-2)o client gnwrizei ta arxeia tou, koitwntas se ena directory kai prosthetei ta onomata twn arxeiwn se mia topiki lista ston client. Leipsh  tis listas apo ton server,
+TODO
 
 
 PROTOCOL COMMANDS
@@ -23,19 +19,47 @@ All commands are terminated with a newline (\n) and the null character (\0).
 
 CLIENT -> SERVER
 ---
-c: HELLO <id>  # send the existing id, or else "-"
-s: WELCOME <id>  # answer to client with existing id or the new unique generated id.
-c: OK
 
-c: NAME <name>  # specify a nickname
-s: OK
+1. initial connection
 
+1.1. the client is connecting to the server for the first time
+c: HELLO
+# send a new unique username for use as default
+s: AVAILABLE <username>
+# choose whether to use the default username or choose one of your own
+c: IWANT <username>
+# check whether the username is unique
+1.1.1 the username is unique
+s: WELCOME <username>
+1.1.2 the username is taken
+s: AVAILABLE <username>
+etc.
+
+
+1.2. the client is known to the server, i.e. already has registered a username
+c: HELLO <username>
+# check whether the username is indeed registered
+1.2.1. the username is valid
+s: WELCOME <username>
+1.2.2. the username is unknown to the server
+s: AVAILABLE <username>
+etc.
+
+
+NEXT
+
+
+2.
 c: LISTENING <listening_ip> <listening_port>  # send the ip address and port we are listening to for incoming connections
 s: OK
 
+
+3.
 c: LIST <number_of_files> [\n<file_a>] [\n<file_b>] [...]  # send the list of the files you are sharing
 s: OK
 
+
+4.
 # TODO
 # maybe optimize to this?
 # FULLLIST 3
@@ -46,11 +70,17 @@ s: OK
 # ab cd.py
 c: SENDLIST  # request the list of clients and the files they are sharing
 s: FULLLIST <number_of_files> [\n<client_a> <file_a>] [\n<client_a> <file_b>] [...] [\n<client_b> <file_a>] [\n<client_b> <file_c>] [...]  # send the list of the clients and the files they are sharing
-c: OK
 
-c: WHERE <client_name>
-s: AT <IP address> <port>
 
+5.
+c: WHERE <peer_username>
+5.1. the peer_username is valid
+s: AT <peer_IP_address> <peer_port>
+5.2. the peer_username is unknown
+s: UNKNOWN
+
+
+6.
 c: <invalid message>
 s: ERROR
 
