@@ -132,6 +132,7 @@ def converse(connection, client, incoming_buffer, own_previous_command):
             for peer_id in clients:
                 if peer == clients[peer_id]["name"]:
                     peer_ip = clients[peer]["listening_ip"]
+                    #print(peer_ip)
                     peer_port = clients[peer]["listening_port"]
 
             at_message = "AT {} {}\n\0".format(peer_ip, peer_port)

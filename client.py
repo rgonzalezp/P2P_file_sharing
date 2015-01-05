@@ -79,7 +79,7 @@ def converse(server, incoming_buffer, own_previous_command):
 
         return None, incoming_buffer
 
-    elif command == "AT":
+    elif command == "AT" and own_previous_command =="WHERE":
         peer_ip = fields[1]
         peer_port = int(fields[2])
 
@@ -145,7 +145,7 @@ def peer_function(connection, address):
     incoming_buffer = ""
 
     while "\0" not in incoming_buffer:
-        incoming_buffer += server.recv(4096)
+        incoming_buffer += connection.recv(4096)
 
     index = incoming_buffer.index("\0")
     message = incoming_buffer[0:index-1]
@@ -158,9 +158,31 @@ def peer_function(connection, address):
 
     if command == "GIVE":
         file_ = fields[1]
+        #read filesize
+        file_size = os.stat(file_)
+        send_message(connection, "TAKE {}\n\0".format(file_size))
 
-        with open(file_, "rb") as file_:
-            json_ = json.load(file_)
+        file_directory = open(file_,'rb')
+        print('Sending....')
+        file_buffer = file_directory.read(1024)
+        while (file_buffer):
+            print('Sending....')
+            connection.send(file_buffer)
+            file_buffer = file_directory.read(1024)
+        #close to arxeio
+        file_directory.close()
+        print("Done Sending")
+        #with open(file_, "rb") as file_:
+        #   json_ = json.load(file_)
+        #close to socket
+        connection.close()
+
+    elif command == "THANKS":
+        pass
+    else:
+        print('ERROR')
+
+
 
 
 def listen(listening_ip, listening_port, queue):
@@ -217,7 +239,7 @@ def give_me(peer):
     incoming_buffer = ""
 
     while "\0" not in incoming_buffer:
-        incoming_buffer += server.recv(4096)
+        incoming_buffer += peer.recv(4096)
 
     index = incoming_buffer.index("\0")
     message = incoming_buffer[0:index-1]
@@ -233,9 +255,19 @@ def give_me(peer):
 
         # get the file
         while len(incoming_buffer) < file_size:
-            incoming_buffer += server.recv(4096)
+            incoming_buffer += peer.recv(4096)
 
-        file_name.write()
+        while True:
+            file_buffer = peer.recv(1024)
+            while (file_buffer):
+               print("Receiving...")
+               file_.write(file_buffer)
+               file_buffer = peer.recv(1024)
+            file_.close()
+
+        print("Done Receiving")
+        send_message(peer, "THANKS\n\0")
+        peer.close()
 
     elif command == "NOTEXIST":
         return
@@ -395,7 +427,7 @@ def main():
 
             send_message(server, "WHERE " + client + "\n\0")
 
-            (peer_ip, peer_port), incoming_buffer = converse(server, incoming_buffer, "WHERE")
+            (peer_ip, peer_port), incoming_buffer = converse(server, incoming_buffer, "WHEREs")
 
             peer = connection_init( (peer_ip, peer_port) )
 
