@@ -23,7 +23,7 @@ All commands are terminated with a newline (\n) and the null character (\0).
 
 CLIENT -> SERVER
 ---
-c: HEY <id>  # send the existing id, or else "-"
+c: HELLO <id>  # send the existing id, or else "-"
 s: WELCOME <id>  # answer to client with existing id or the new unique generated id.
 c: OK
 
@@ -51,6 +51,9 @@ c: OK
 c: WHERE <client_name>
 s: AT <IP address> <port>
 
+c: <invalid message>
+s: ERROR
+
 
 SERVER -> CLIENT
 ---
@@ -59,5 +62,15 @@ SERVER -> CLIENT
 CLIENT -> CLIENT
 ---
 c: GIVE <filename>
-p: TAKE <file_size> \n <file buffer>
+# TODO
+# send hash ?
+p: TAKE <file_size>
+p: <file buffer>
 c: THANKS
+
+# if the file doesn't exist
+c: GIVE <filename>
+p: NOTEXIST
+# send LIST to client and server
+p: LIST <number_of_files> [\n<file_a>] [\n<file_b>] [...]  # send the list of the files you are sharing
+c: OK

@@ -23,7 +23,7 @@ configuration_file = ""
 configuration = {}
 
 clients_file = ""
-# {client_id: {name: name, files: [shared files], IP_address: IP_address, port: port}}
+# {client_id: {name: name, files: [shared files], listening_IP_address: listening_IP_address, listening_port: listening_port}}
 clients = {}
 
 # {(IP_address, port): client_id}
@@ -62,7 +62,7 @@ def converse(connection, client, incoming_buffer, own_previous_command):
     fields = lines[0].split()
     command = fields[0]
 
-    if command == "HEY":
+    if command == "HELLO":
         client_id = fields[1]
         if client_id == "-":
             configuration["max_id_offset"] += 1
@@ -88,19 +88,6 @@ def converse(connection, client, incoming_buffer, own_previous_command):
 
         return incoming_buffer, "OK"
 
-    elif command == "LIST":
-        number_of_files = int(fields[1])
-        if number_of_files != (len(lines) - 1):
-            logging.warning("invalid LIST message, wrong number of files")
-            # TODO
-            # send an error message, handle it in the client
-            reply = "ERROR\n\0"
-        else:
-            clients[connected_clients[client]]["files"] = lines[1:]
-            json_save(clients_file, clients)
-        send_message(connection, "OK\n\0")
-        return incoming_buffer, "OK"
-
     elif command == "LISTENING":
         clients[connected_clients[client]]["listening_ip"] = fields[1]
         clients[connected_clients[client]]["listening_port"] = fields[2]
@@ -108,6 +95,18 @@ def converse(connection, client, incoming_buffer, own_previous_command):
 
         logging.debug("clients: " + str(clients))
 
+        send_message(connection, "OK\n\0")
+        return incoming_buffer, "OK"
+
+    elif command == "LIST":
+        number_of_files = int(fields[1])
+        if number_of_files != (len(lines) - 1):
+            logging.warning("invalid LIST message, wrong number of files")
+            send_message(connection, "ERROR\n\0")
+            sys.exit(-1)
+        else:
+            clients[connected_clients[client]]["files"] = lines[1:]
+            json_save(clients_file, clients)
         send_message(connection, "OK\n\0")
         return incoming_buffer, "OK"
 
@@ -126,8 +125,29 @@ def converse(connection, client, incoming_buffer, own_previous_command):
 
         return converse(connection, client, incoming_buffer, "FULLLIST")
 
+    elif command == "WHERE":
+        peer = fields[1]
+
+        if peer in [value["name"] for value in clients.values()]:
+            for peer_id in clients:
+                if peer == clients[peer_id]["name"]:
+                    peer_ip = clients[peer]["listening_ip"]
+                    peer_port = clients[peer]["listening_port"]
+
+            at_message = "AT {} {}\n\0".format(peer_ip, peer_port)
+            send_message(connection, at_message)
+
+            return incoming_buffer, "WHERE"
+        else:
+            send_message(connection, "ERROR\n\0")
+            sys.exit(-1)
+
     elif command == "OK" and own_previous_command in ["WELCOME", "FULLLIST"]:
         return incoming_buffer, "OK"
+
+    elif command == "ERROR":
+        logging.warning("ERROR message received, exiting")
+        sys.exit(-1)
 
     else:
         # TODO

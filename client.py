@@ -16,12 +16,13 @@ from library.library import json_save
 from library.library import send_message
 
 
-#DEBUG = True
-DEBUG = False
+DEBUG = True
+#DEBUG = False
 
 
 configuration_file = ""
 configuration = {}
+full_list_of_files = []
 
 
 def sigint_handler(signal, frame):
@@ -36,6 +37,7 @@ signal.signal(signal.SIGINT, sigint_handler)
 
 def converse(server, incoming_buffer, own_previous_command):
     global configuration
+    global full_list_of_files
 
     if "\0" not in incoming_buffer:
         incoming_buffer += server.recv(4096)
@@ -56,17 +58,18 @@ def converse(server, incoming_buffer, own_previous_command):
         configuration["id"] = id_
         json_save(configuration_file, configuration)
         send_message(server, "OK\n\0")
-        return incoming_buffer
+        return None, incoming_buffer
 
     elif command == "FULLLIST" and own_previous_command == "SENDLIST":
         number_of_files = int(fields[1])
 
         if number_of_files != (len(lines) - 1):
             logging.warning("invalid FULLLIST message, wrong number of files")
-            # TODO
-            # send an error message, handle it in the server
-            reply = "ERROR\n\0"
+            send_message(server, "ERROR\n\0")
+            sys.exit(-1)
         else:
+            full_list_of_files = lines[1:]
+
             # cli_output
             print()
             print("full list of clients' files")
@@ -74,8 +77,20 @@ def converse(server, incoming_buffer, own_previous_command):
                 print(line)
             send_message(server, "OK\n\0")
 
+        return None, incoming_buffer
+
+    elif command == "AT":
+        peer_ip = fields[1]
+        peer_port = int(fields[2])
+
+        return (peer_ip, peer_port), incoming_buffer
+
     elif command == "OK" and own_previous_command in ("NAME", "LIST", "LISTENING"):
-        return incoming_buffer
+        return None, incoming_buffer
+
+    elif command == "ERROR":
+        logging.warning("ERROR message received, exiting")
+        sys.exit(-1)
 
     else:
         # TODO
@@ -99,7 +114,7 @@ def connection_init(address):
         try:
             connection.connect( (ip, port) )
             # cli_output
-            logging.info("connected to server {}:{}".format(ip, port))
+            logging.info("connected to server or peer {}:{}".format(ip, port))
             break
         except socket.error:
             # TODO
@@ -127,7 +142,25 @@ def peer_function(connection, address):
     connection : connection socket
     address : (IP_address, port)
     """
-    pass
+    incoming_buffer = ""
+
+    while "\0" not in incoming_buffer:
+        incoming_buffer += server.recv(4096)
+
+    index = incoming_buffer.index("\0")
+    message = incoming_buffer[0:index-1]
+    incoming_buffer = incoming_buffer[index+1:]
+
+    logging.info("message received: " + message)
+
+    fields = message.split()
+    command = fields[0]
+
+    if command == "GIVE":
+        file_ = fields[1]
+
+        with open(file_, "rb") as file_:
+            json_ = json.load(file_)
 
 
 def listen(listening_ip, listening_port, queue):
@@ -174,9 +207,50 @@ def listen(listening_ip, listening_port, queue):
         peer_counter += 1
 
 
+def give_me(peer):
+    print()
+    print("file name:")
+    file_ = raw_input()
+
+    send_message(peer, "GIVE {}\n\0".format(file_))
+
+    incoming_buffer = ""
+
+    while "\0" not in incoming_buffer:
+        incoming_buffer += server.recv(4096)
+
+    index = incoming_buffer.index("\0")
+    message = incoming_buffer[0:index-1]
+    incoming_buffer = incoming_buffer[index+1:]
+
+    logging.info("message received: " + message)
+
+    fields = message.split()
+    command = fields[0]
+
+    if command == "TAKE":
+        file_size = fields[1]
+
+        # get the file
+        while len(incoming_buffer) < file_size:
+            incoming_buffer += server.recv(4096)
+
+        file_name.write()
+
+    elif command == "NOTEXIST":
+        return
+
+    else:
+        # TODO
+        # handle invalid commands
+        logging.warning('an invalid command was received: "{}"'.format(command))
+        sys.exit(-1)
+
+
 def main():
     global configuration
     global configuration_file
+    global full_list_of_files
 
     # check if an argument was passed
     if len(sys.argv) < 2:
@@ -232,11 +306,11 @@ def main():
     incoming_buffer = ""
 
 
-    # send HEY command
+    # send HELLO command
     ############################################################################
-    send_message(server, "HEY " + configuration["id"] + "\n\0")
+    send_message(server, "HELLO " + configuration["id"] + "\n\0")
 
-    incoming_buffer = converse(server, incoming_buffer, "HEY")
+    unneeded, incoming_buffer = converse(server, incoming_buffer, "HELLO")
 
 
     # send NAME command
@@ -295,7 +369,8 @@ def main():
         print()
         print("options:")
         print("1: SENDLIST / s : request the list of clients and shared files")
-        print("2: QUIT / q : exit the program")
+        print("2: WHERE / w : request the IP address and port of the specified client")
+        print("5: QUIT / q : exit the program")
 
         option = raw_input()
         if option in ["1", "s", "S", "sendlist", "SENDLIST"]:
@@ -303,7 +378,30 @@ def main():
 
             converse(server, incoming_buffer, "SENDLIST")
 
-        elif option in ["2", "q", "Q", "quit", "QUIT"]:
+        elif option in ["2", "w", "W", "where", "WHERE"]:
+            print("Enter the name of the client:")
+
+            while True:
+                client = raw_input()
+
+                if client == configuration["name"]:
+                    print("{} is you, try again: ".format(client))
+                    continue
+
+                if client in [pair.split()[0] for pair in full_list_of_files]:
+                    break
+
+                print("{} is an invalid client name, try again: ".format(client))
+
+            send_message(server, "WHERE " + client + "\n\0")
+
+            (peer_ip, peer_port), incoming_buffer = converse(server, incoming_buffer, "WHERE")
+
+            peer = connection_init( (peer_ip, peer_port) )
+
+            give_me(peer)
+
+        elif option in ["5", "q", "Q", "quit", "QUIT"]:
             sys.exit(0)
 
         else:
