@@ -74,6 +74,9 @@ def converse(connection, client, incoming_buffer, own_previous_command):
         else:
             username = fields[1]
             if username in clients:
+                connected_clients[client] = username
+                logging.debug("connected_clients: " + str(connected_clients))
+
                 send_message(connection, "WELCOME " + username + "\n\0")
                 return converse(connection, client, incoming_buffer, "WELCOME")
             else:

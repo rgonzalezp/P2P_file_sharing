@@ -22,6 +22,7 @@ DEBUG = True
 
 configuration_file = ""
 configuration = {}
+share_directory = ""
 full_list_of_files = []
 
 
@@ -148,6 +149,8 @@ def peer_function(connection, address):
     connection : connection socket
     address : (IP_address, port)
     """
+    global share_directory
+
     incoming_buffer = ""
 
     while "\0" not in incoming_buffer:
@@ -163,32 +166,36 @@ def peer_function(connection, address):
     command = fields[0]
 
     if command == "GIVE":
-        file_ = fields[1]
-        #read filesize
-        file_size = os.stat(file_)
-        send_message(connection, "TAKE {}\n\0".format(file_size))
+        file_ = share_directory + "/" + fields[1]
 
-        file_directory = open(file_,'rb')
-        print('Sending....')
-        file_buffer = file_directory.read(1024)
-        while (file_buffer):
-            print('Sending....')
+        # get the file size
+        file_size = os.path.getsize(file_)
+        print(str(file_size))
+
+        send_message(connection, "TAKE {}\n\0".format(str(file_size)))
+
+        file__ = open(file_, "rb")
+        print("file__: " +  str(file__))
+
+        file_buffer = ""
+        file_buffer = file__.read(1024)
+        while file_buffer:
+            print("sending: " + file_buffer)
             connection.send(file_buffer)
-            file_buffer = file_directory.read(1024)
-        #close to arxeio
-        file_directory.close()
+            file_buffer = file__.read(1024)
+
         print("Done Sending")
-        #with open(file_, "rb") as file_:
-        #   json_ = json.load(file_)
-        #close to socket
+
+        # close the file
+        file__.close()
+
+        # close the socket
         connection.close()
 
     elif command == "THANKS":
         pass
     else:
         print('ERROR')
-
-
 
 
 def listen(listening_ip, listening_port, queue):
@@ -260,16 +267,17 @@ def give_me(peer):
         file_size = fields[1]
 
         # get the file
-        while len(incoming_buffer) < file_size:
+        while len(incoming_buffer) < int(file_size):
             incoming_buffer += peer.recv(4096)
+            print("received: " + incoming_buffer)
+            print("len(incoming_buffer): " + str(len(incoming_buffer)))
+            # TODO
+            # save the file chunk by chunk
 
-        while True:
-            file_buffer = peer.recv(1024)
-            while (file_buffer):
-               print("Receiving...")
-               file_.write(file_buffer)
-               file_buffer = peer.recv(1024)
-            file_.close()
+        file_ = "paok.txt"
+        file__ = open(file_, "wb")
+        file__.write(incoming_buffer)
+        file__.close()
 
         print("Done Receiving")
         send_message(peer, "THANKS\n\0")
@@ -289,6 +297,7 @@ def main():
     global configuration
     global configuration_file
     global full_list_of_files
+    global share_directory
 
     # check if an argument was passed
     if len(sys.argv) < 2:
