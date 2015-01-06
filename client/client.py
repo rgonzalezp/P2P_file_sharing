@@ -98,9 +98,9 @@ def converse(server, incoming_buffer, own_previous_command):
     elif command == "OK" and own_previous_command in ("LIST", "LISTENING"):
         return None, incoming_buffer
 
-    #elif command == "ERROR":
-    #    logging.warning("ERROR message received, exiting")
-    #    sys.exit(-1)
+    elif command == "ERROR":
+        logging.warning("ERROR message received, exiting")
+        sys.exit(-1)
 
     else:
         # TODO
@@ -173,12 +173,10 @@ def peer_function(connection, address):
 
             # get the file size
             file_size = os.path.getsize(file_)
-            print(str(file_size))
 
             send_message(connection, "TAKE {}\n\0".format(str(file_size)))
 
             file__ = open(file_, "rb")
-            print("file__: " +  str(file__))
 
             file_buffer = ""
             file_buffer = file__.read(1024)

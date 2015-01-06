@@ -80,16 +80,9 @@ def converse(connection, client, incoming_buffer, own_previous_command):
                 send_message(connection, "WELCOME " + username + "\n\0")
                 return converse(connection, client, incoming_buffer, "WELCOME")
             else:
-                configuration["username_offset"] += 1
-                json_save(configuration_file, configuration)
+                send_message(connection, "ERROR\n\0")
 
-                username = "u{}".format(configuration["username_offset"])
-
-                connected_clients[client] = username
-                logging.debug("connected_clients: " + str(connected_clients))
-
-                send_message(connection, "AVAILABLE " + username + "\n\0")
-                return converse(connection, client, incoming_buffer, "AVAILABLE")
+                return incoming_buffer, "ERROR"
 
     elif command == "IWANT":
         username = fields[1]
@@ -165,9 +158,9 @@ def converse(connection, client, incoming_buffer, own_previous_command):
             send_message(connection, "UNKNOWN\n\0")
             return incoming_buffer, "UNKNOWN"
 
-    #elif command == "ERROR":
-    #    logging.warning("ERROR message received, exiting")
-    #    sys.exit(-1)
+    elif command == "ERROR":
+        logging.warning("ERROR message received, exiting")
+        sys.exit(-1)
 
     else:
         # TODO
