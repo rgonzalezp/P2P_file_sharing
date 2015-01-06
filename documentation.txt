@@ -4,7 +4,8 @@ dpdgsp: a P2P file sharing application with a centralized server
 
 protocol design
 ===
-The protocol is designed to work on the application level with messages transported over TCP ephemeral connections.
+The protocol is designed to work on the application level with messages
+transported over TCP ephemeral connections.
 
 
 COMMANDS
@@ -86,31 +87,41 @@ clients.
 
 c: SENDLIST
 s: FULLLIST <number_of_files> [\n<client_a> <file_a>] [\n<client_a> <file_b>]
- 
-The client requests the full list of the clients that are connected to the server.
-The list contains the names of clients and their files. The Client send "SENDLIST"
-and the repsonse from the server is: "FULLLIST .....". Command FULLLIST contains 
-the number of files that exist, and the clients with their files.
 
-5. request ip and port of client to connect with him\
+The client requests the full list of the clients that are connected to
+the server. The list contains the names of clients and their files. The client
+sends "SENDLIST" and the repsonse from the server is: "FULLLIST ...".
+The command FULLLIST contains the number of files that exist, and the clients
+with their files.
+
+
+
+5. Request the IP address and port of the peer to connect to.
 
 c: WHERE <peer_username>
 s: AT <peer_IP_address> <peer_port>
 
-Client sends command WHERE and the username of the client that wishes to connect
-and take a spesific file. Server responds with command: AT <peer_IP_address> 
-<peer_port> which is the ip address of this client and his port. 
+The client sends the command WHERE and the username of the client that wishes
+to connect and take a specific file. Server responds with command:
+AT <peer_IP_address> <peer_port> which is the ip address of this client and
+his port.
 
-In case the peer_username doesn't exist the server repsond with command UNKNOWN
+In case the peer_username doesn't exist the server responds with the command
+UNKNOWN.
 
 c: WHERE <peer_username>
 s: UNKNOWN
+
+
 
 6.
 c: <invalid message>
 s: ERROR
 
-If in any case an invalid message sent to client or to server , the answer is ERROR.
+If in any case an invalid message sent to client or to server, the answer is
+ERROR.
+
+
 
 SERVER -> CLIENT
 ---
@@ -125,19 +136,16 @@ p: TAKE <file_size>
 p: <file buffer>
 c: THANKS
 
-When the connection client to client is initialized, the "receiver" sends command
-GIVE <filename> and requests the spesific file from the "giver". "Giver" sends TAKE
-following from the file size of the spesific file. After that a message with the file
-it is sent from the "giver". "Receiver" responds with THANKS if everything goes
-straight.
+When the connection client to client is initialized, the "receiver" sends
+command GIVE <filename> and requests the spesific file from the "giver".
+"Giver" sends TAKE following from the file size of the spesific file. After that
+a message with the file it is sent from the "giver". "Receiver" responds with
+THANKS if everything goes straight.
 
-If the file doesn't exist the list will be sent again and the "receiver" will answer
-with: OK
+If the file doesn't exist the peer replies with an ERROR message.
 
 c: GIVE <filename>
-p: NOTEXIST
-p: LIST <number_of_files> [\n<file_a>] [\n<file_b>] [...]  
-c: OK
+p: ERROR
 
 
 notes

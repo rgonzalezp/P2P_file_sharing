@@ -178,24 +178,29 @@ def peer_function(connection, address):
         if command == "GIVE":
             file_ = share_directory + "/" + fields[1]
 
-            # get the file size
-            file_size = os.path.getsize(file_)
+            if os.path.isfile(file_):
+                # get the file size
+                file_size = os.path.getsize(file_)
 
-            send_message(connection, "TAKE {}\n\0".format(str(file_size)))
+                send_message(connection, "TAKE {}\n\0".format(str(file_size)))
 
-            file__ = open(file_, "rb")
+                file__ = open(file_, "rb")
 
-            file_buffer = ""
-            file_buffer = file__.read(1024)
-            while file_buffer:
-                print("sending: " + file_buffer)
-                connection.send(file_buffer)
+                file_buffer = ""
                 file_buffer = file__.read(1024)
+                while file_buffer:
+                    print("sending: " + file_buffer)
+                    connection.send(file_buffer)
+                    file_buffer = file__.read(1024)
 
-            # cli_output
-            logging.info("file {} sent".format(file_))
+                # cli_output
+                logging.info("file {} sent".format(file_))
 
-            file__.close()
+                file__.close()
+            else:
+                send_message(connection, "ERROR")
+                connection.close()
+                break
 
         elif command == "THANKS":
             connection.close()
