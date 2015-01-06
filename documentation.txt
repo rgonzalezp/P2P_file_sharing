@@ -84,32 +84,33 @@ clients.
 
 4. request list of shared files
 
-c: SENDLIST  # request the list of clients and the files they are sharing
+c: SENDLIST
 s: FULLLIST <number_of_files> [\n<client_a> <file_a>] [\n<client_a> <file_b>]
-[...] [\n<client_b> <file_a>] [\n<client_b> <file_c>] [...]  # send the list of the clients and the files they are sharing
+ 
+The client requests the full list of the clients that are connected to the server.
+The list contains the names of clients and their files. The Client send "SENDLIST"
+and the repsonse from the server is: "FULLLIST .....". Command FULLLIST contains 
+the number of files that exist, and the clients with their files.
 
+5. request ip and port of client to connect with him\
 
-
-c: SENDLIST  # request the list of clients and the files they are sharing
-s: FULLLIST <number_of_files> [\n<client_a> <file_a>] [\n<client_a> <file_b>]
-[...] [\n<client_b> <file_a>] [\n<client_b> <file_c>] [...]  # send the list of the clients and the files they are sharing
-
-
-
-5.
 c: WHERE <peer_username>
-5.1. the peer_username is valid
 s: AT <peer_IP_address> <peer_port>
-5.2. the peer_username is unknown
+
+Client sends command WHERE and the username of the client that wishes to connect
+and take a spesific file. Server responds with command: AT <peer_IP_address> 
+<peer_port> which is the ip address of this client and his port. 
+
+In case the peer_username doesn't exist the server repsond with command UNKNOWN
+
+c: WHERE <peer_username>
 s: UNKNOWN
-
-
 
 6.
 c: <invalid message>
 s: ERROR
 
-
+If in any case an invalid message sent to client or to server , the answer is ERROR.
 
 SERVER -> CLIENT
 ---
@@ -117,18 +118,25 @@ SERVER -> CLIENT
 
 CLIENT -> CLIENT
 ---
+
+7.
 c: GIVE <filename>
-# TODO
-# send hash ?
 p: TAKE <file_size>
 p: <file buffer>
 c: THANKS
 
-# if the file doesn't exist
+When the connection client to client is initialized, the "receiver" sends command
+GIVE <filename> and requests the spesific file from the "giver". "Giver" sends TAKE
+following from the file size of the spesific file. After that a message with the file
+it is sent from the "giver". "Receiver" responds with THANKS if everything goes
+straight.
+
+If the file doesn't exist the list will be sent again and the "receiver" will answer
+with: OK
+
 c: GIVE <filename>
 p: NOTEXIST
-# send LIST to client and server
-p: LIST <number_of_files> [\n<file_a>] [\n<file_b>] [...]  # send the list of the files you are sharing
+p: LIST <number_of_files> [\n<file_a>] [\n<file_b>] [...]  
 c: OK
 
 
