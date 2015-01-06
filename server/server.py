@@ -67,7 +67,7 @@ def converse(connection, client, incoming_buffer, own_previous_command):
             configuration["username_offset"] += 1
             json_save(configuration_file, configuration)
 
-            username = "user_{0:0>3}".format(configuration["username_offset"])
+            username = "u{}".format(configuration["username_offset"])
 
             send_message(connection, "AVAILABLE " + username + "\n\0")
             return converse(connection, client, incoming_buffer, "AVAILABLE")
@@ -83,7 +83,7 @@ def converse(connection, client, incoming_buffer, own_previous_command):
                 configuration["username_offset"] += 1
                 json_save(configuration_file, configuration)
 
-                username = "user_{0:0>3}".format(configuration["username_offset"])
+                username = "u{}".format(configuration["username_offset"])
 
                 connected_clients[client] = username
                 logging.debug("connected_clients: " + str(connected_clients))
@@ -97,7 +97,7 @@ def converse(connection, client, incoming_buffer, own_previous_command):
             configuration["username_offset"] += 1
             json_save(configuration_file, configuration)
 
-            username = "user_{0:0>3}".format(configuration["username_offset"])
+            username = "u{}".format(configuration["username_offset"])
 
             send_message(connection, "AVAILABLE " + username + "\n\0")
             return converse(connection, client, incoming_buffer, "AVAILABLE")
@@ -222,7 +222,7 @@ def main():
         configuration = json_load(configuration_file)
     else:
         configuration["host"] = "localhost"
-        configuration["port"] = 5000
+        configuration["port"] = 45000
         configuration["username_offset"] = 0
         json_save(configuration_file, configuration)
 
@@ -248,15 +248,20 @@ def main():
 
     # TODO
     # replace with the equivalent code without using an offset
-    while True:
-        try:
-            server_socket.bind( (host, port) )
-            break
-        except socket.error:
-            # TODO
-            # this will be an error in production, i.e. the port must be specific
-            logging.debug("port {} in use, trying the next one".format(port))
-            port += 1
+    #while True:
+    #    try:
+    #        server_socket.bind( (host, port) )
+    #        break
+    #    except socket.error:
+    #        # TODO
+    #        # this will be an error in production, i.e. the port must be specific
+    #        logging.debug("port {} in use, trying the next one".format(port))
+    #        port += 1
+    try:
+        server_socket.bind( (host, port) )
+    except socket.error:
+        logging.error("port {} in use, exiting".format(port))
+        sys.exit(-1)
 
     # listen for incoming connections
     server_socket.listen(5)

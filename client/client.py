@@ -24,6 +24,7 @@ configuration_file = ""
 configuration = {}
 share_directory = ""
 full_list_of_files = []
+requested_file = ""
 
 
 def sigint_handler(signal, frame):
@@ -39,6 +40,7 @@ signal.signal(signal.SIGINT, sigint_handler)
 def converse(server, incoming_buffer, own_previous_command):
     global configuration
     global full_list_of_files
+    global requested_file
 
     if "\0" not in incoming_buffer:
         incoming_buffer += server.recv(4096)
@@ -153,49 +155,52 @@ def peer_function(connection, address):
 
     incoming_buffer = ""
 
-    while "\0" not in incoming_buffer:
-        incoming_buffer += connection.recv(4096)
+    while True:
+        while "\0" not in incoming_buffer:
+            incoming_buffer += connection.recv(4096)
 
-    index = incoming_buffer.index("\0")
-    message = incoming_buffer[0:index-1]
-    incoming_buffer = incoming_buffer[index+1:]
+        index = incoming_buffer.index("\0")
+        message = incoming_buffer[0:index-1]
+        incoming_buffer = incoming_buffer[index+1:]
 
-    logging.info("message received: " + message)
+        logging.info("message received: " + message)
 
-    fields = message.split()
-    command = fields[0]
+        fields = message.split()
+        command = fields[0]
 
-    if command == "GIVE":
-        file_ = share_directory + "/" + fields[1]
+        if command == "GIVE":
+            file_ = share_directory + "/" + fields[1]
 
-        # get the file size
-        file_size = os.path.getsize(file_)
-        print(str(file_size))
+            # get the file size
+            file_size = os.path.getsize(file_)
+            print(str(file_size))
 
-        send_message(connection, "TAKE {}\n\0".format(str(file_size)))
+            send_message(connection, "TAKE {}\n\0".format(str(file_size)))
 
-        file__ = open(file_, "rb")
-        print("file__: " +  str(file__))
+            file__ = open(file_, "rb")
+            print("file__: " +  str(file__))
 
-        file_buffer = ""
-        file_buffer = file__.read(1024)
-        while file_buffer:
-            print("sending: " + file_buffer)
-            connection.send(file_buffer)
+            file_buffer = ""
             file_buffer = file__.read(1024)
+            while file_buffer:
+                print("sending: " + file_buffer)
+                connection.send(file_buffer)
+                file_buffer = file__.read(1024)
 
-        print("Done Sending")
+            print("file sent")
 
-        # close the file
-        file__.close()
+            file__.close()
 
-        # close the socket
-        connection.close()
+        elif command == "THANKS":
+            connection.close()
+            break
 
-    elif command == "THANKS":
-        pass
-    else:
-        print('ERROR')
+        else:
+            send_message(connection, "ERROR")
+            connection.close()
+            break
+
+    return
 
 
 def listen(listening_ip, listening_port, queue):
@@ -207,20 +212,27 @@ def listen(listening_ip, listening_port, queue):
 
     # TODO
     # replace with the equivalent code without using an offset
-    while True:
-        try:
-            listening_socket.bind( (listening_ip, listening_port) )
-            break
-        except socket.error:
-            # TODO
-            # this will be an error in production, i.e. the port must be specific
-            logging.debug("port {} in use, trying the next one".format(listening_port))
-            listening_port += 1
+    #while True:
+    #    try:
+    #        listening_socket.bind( (listening_ip, listening_port) )
+    #        break
+    #    except socket.error:
+    #        # TODO
+    #        # this will be an error in production, i.e. the port must be specific
+    #        logging.debug("port {} in use, trying the next one".format(listening_port))
+    #        listening_port += 1
+    try:
+        listening_socket.bind( (listening_ip, listening_port) )
+    except socket.error:
+        logging.error("port {} in use, exiting".format(port))
+        sys.exit(-1)
 
     # listen for incoming connections
     listening_socket.listen(5)
     # cli_output
     logging.info("client listening on {}:{}".format(listening_ip, str(listening_port)))
+
+    listening_port = listening_socket.getsockname()[1]
 
     # pass the listening_ip and listening_port to the main thread
     queue.put( (listening_ip, listening_port) )
@@ -243,11 +255,13 @@ def listen(listening_ip, listening_port, queue):
 
 
 def give_me(peer):
+    global requested_file
+
     print()
     print("file name:")
-    file_ = raw_input()
+    requested_file = raw_input()
 
-    send_message(peer, "GIVE {}\n\0".format(file_))
+    send_message(peer, "GIVE {}\n\0".format(requested_file))
 
     incoming_buffer = ""
 
@@ -274,12 +288,11 @@ def give_me(peer):
             # TODO
             # save the file chunk by chunk
 
-        file_ = "paok.txt"
-        file__ = open(file_, "wb")
-        file__.write(incoming_buffer)
-        file__.close()
+        file_to_save = open(share_directory + "/" + requested_file, "wb")
+        file_to_save.write(incoming_buffer)
+        file_to_save.close()
 
-        print("Done Receiving")
+        print("file received")
         send_message(peer, "THANKS\n\0")
         peer.close()
 
@@ -299,21 +312,9 @@ def main():
     global full_list_of_files
     global share_directory
 
-    # check if an argument was passed
-    if len(sys.argv) < 2:
-        # cli_output
-        print("please pass the working directory")
-        sys.exit(-1)
-
-    argument = sys.argv[1]
-
-    configuration = {}
-
-    working_directory = argument
-
     logging.basicConfig(level=logging.DEBUG,
             format="[%(levelname)s] (%(threadName)s) %(message)s",
-            filename=working_directory + "/client.log",
+            filename="client.log",
             filemode="w")
     console = logging.StreamHandler()
     if DEBUG:
@@ -325,21 +326,21 @@ def main():
     logging.getLogger("").addHandler(console)
 
 
-    configuration_file = working_directory + "/configuration.json"
+    configuration_file = "configuration.json"
 
     if os.path.isfile(configuration_file):
         configuration = json_load(configuration_file)
     else:
         configuration["server_host"] = "localhost"
-        configuration["server_port"] = 5000
+        configuration["server_port"] = 45000
         configuration["listening_ip"] = "localhost"
-        configuration["listening_port"] = 10000 + (int(argument[-4:]) * 1000)
+        configuration["listening_port"] = 0
         configuration["share_directory"] = "share"
         json_save(configuration_file, configuration)
 
     logging.debug("configuration: " + str(configuration))
 
-    share_directory = working_directory + "/" + configuration["share_directory"]
+    share_directory = configuration["share_directory"]
     files_list = [ file_ for file_ in os.listdir(share_directory) if os.path.isfile(os.path.join(share_directory, file_)) ]
 
     logging.debug("files_list: " + str(files_list))
