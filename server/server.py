@@ -1,6 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# Dimitrios Paraschas
+# 1562
+# Dimitrios Greasidis
+# 1624
+# Stefanos Papanastasiou
+# 1608
+
 
 from __future__ import print_function
 import logging
@@ -40,8 +47,6 @@ def sigint_handler(signal, frame):
 signal.signal(signal.SIGINT, sigint_handler)
 
 
-# NOTE
-# (incoming_buffer, own_previous_command) in "state" in FSM
 def converse(connection, client, incoming_buffer, own_previous_command):
     global configuration_file
     global configuration
@@ -239,17 +244,6 @@ def main():
     host = configuration["host"]
     port = configuration["port"]
 
-    # TODO
-    # replace with the equivalent code without using an offset
-    #while True:
-    #    try:
-    #        server_socket.bind( (host, port) )
-    #        break
-    #    except socket.error:
-    #        # TODO
-    #        # this will be an error in production, i.e. the port must be specific
-    #        logging.debug("port {} in use, trying the next one".format(port))
-    #        port += 1
     try:
         server_socket.bind( (host, port) )
     except socket.error:

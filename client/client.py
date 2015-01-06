@@ -1,6 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# Dimitrios Paraschas
+# 1562
+# Dimitrios Greasidis
+# 1624
+# Stefanos Papanastasiou
+# 1608
+
 
 from __future__ import print_function
 import logging
@@ -185,7 +192,8 @@ def peer_function(connection, address):
                 connection.send(file_buffer)
                 file_buffer = file__.read(1024)
 
-            print("file sent")
+            # cli_output
+            logging.info("file {} sent".format(file_))
 
             file__.close()
 
@@ -208,17 +216,6 @@ def listen(listening_ip, listening_port, queue):
         logging.error("socket.socket error")
         sys.exit(-1)
 
-    # TODO
-    # replace with the equivalent code without using an offset
-    #while True:
-    #    try:
-    #        listening_socket.bind( (listening_ip, listening_port) )
-    #        break
-    #    except socket.error:
-    #        # TODO
-    #        # this will be an error in production, i.e. the port must be specific
-    #        logging.debug("port {} in use, trying the next one".format(listening_port))
-    #        listening_port += 1
     try:
         listening_socket.bind( (listening_ip, listening_port) )
     except socket.error:
@@ -227,6 +224,7 @@ def listen(listening_ip, listening_port, queue):
 
     # listen for incoming connections
     listening_socket.listen(5)
+
     # cli_output
     logging.info("client listening on {}:{}".format(listening_ip, str(listening_port)))
 
@@ -255,6 +253,7 @@ def listen(listening_ip, listening_port, queue):
 def give_me(peer):
     global requested_file
 
+    # cli_output
     print()
     print("file name:")
     requested_file = raw_input()
@@ -281,8 +280,7 @@ def give_me(peer):
         # get the file
         while len(incoming_buffer) < int(file_size):
             incoming_buffer += peer.recv(4096)
-            print("received: " + incoming_buffer)
-            print("len(incoming_buffer): " + str(len(incoming_buffer)))
+            logging.debug("received: " + incoming_buffer)
             # TODO
             # save the file chunk by chunk
 
@@ -290,7 +288,7 @@ def give_me(peer):
         file_to_save.write(incoming_buffer)
         file_to_save.close()
 
-        print("file received")
+        logging.info("file {} received".format(file_to_save))
         send_message(peer, "THANKS\n\0")
         peer.close()
 

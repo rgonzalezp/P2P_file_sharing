@@ -1,6 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# Dimitrios Paraschas
+# 1562
+# Dimitrios Greasidis
+# 1624
+# Stefanos Papanastasiou
+# 1608
+
 
 from __future__ import print_function
 import sys
