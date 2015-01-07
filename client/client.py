@@ -201,7 +201,7 @@ def peer_function(connection, address):
 
                 file__.close()
             else:
-                send_message(connection, "ERROR")
+                send_message(connection, "ERROR\n\0")
                 connection.close()
                 break
 
@@ -210,7 +210,7 @@ def peer_function(connection, address):
             break
 
         else:
-            send_message(connection, "ERROR")
+            send_message(connection, "ERROR\n\0")
             connection.close()
             break
 
@@ -228,7 +228,7 @@ def listen(listening_ip, listening_port, queue):
     try:
         listening_socket.bind( (listening_ip, listening_port) )
     except socket.error:
-        logging.error("port {} in use, exiting".format(port))
+        logging.error("port {} in use, exiting".format(listening_port))
         sys.exit(-1)
 
     # listen for incoming connections
@@ -300,10 +300,11 @@ def give_me(peer):
         file_to_save.close()
 
         logging.info("file {} received".format(requested_file))
+        logging.info("reconnect to the server to refresh the shared files list")
         send_message(peer, "THANKS\n\0")
         peer.close()
 
-    elif command == "NOTEXIST":
+    elif command == "ERROR":
         return
 
     else:

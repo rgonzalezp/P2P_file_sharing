@@ -1,6 +1,30 @@
 dpdgsp: a P2P file sharing application with a centralized server
 ===
 
+Dimitrios Paraschas
+1562
+Dimitrios Greasidis
+1624
+Stefanos Papanastasiou
+1608
+
+
+description
+===
+
+instructions
+---
+
+0. run make to clear the program configuration and clients database
+
+1. run "run_server.sh" (./run_server.sh)
+
+2. run at least two clients (from different terminals)
+    e.g. run "run_u1.sh" and "run_u2.sh" (./run_u1.sh and ./run_u2.sh)
+
+3. follow the menu instructions to test and use the program
+
+
 
 protocol design
 ===
@@ -123,10 +147,6 @@ ERROR.
 
 
 
-SERVER -> CLIENT
----
-
-
 CLIENT -> CLIENT
 ---
 
@@ -155,18 +175,3 @@ notes
 'p' :  peer
 
 All commands are terminated with a newline (\n) and the null character (\0).
-
-
-
-description
-===
-
-use instructions
----
-
-1. run "run_server.sh"
-
-2. run at least two clients
-    e.g. run "run_u1.sh" and "run_u2.sh"
-
-3.
