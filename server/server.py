@@ -22,8 +22,8 @@ from library.library import json_save
 from library.library import send_message
 
 
-DEBUG = True
-#DEBUG = False
+#DEBUG = True
+DEBUG = False
 
 
 configuration_file = ""
@@ -36,7 +36,8 @@ clients = {}
 # {(IP_address, port): username}
 connected_clients = {}
 
-# handle ctrl-c
+
+# handle keyboard interrupts (CTRL-C)
 def sigint_handler(signal, frame):
     # cli_output
     print()
@@ -46,7 +47,8 @@ def sigint_handler(signal, frame):
 
 signal.signal(signal.SIGINT, sigint_handler)
 
-# Handle messages, uses recursion if there are more incoming commands
+
+# handle messages, uses recursion if there are more incoming commands
 def converse(connection, client, incoming_buffer, own_previous_command):
     global configuration_file
     global configuration
@@ -60,29 +62,31 @@ def converse(connection, client, incoming_buffer, own_previous_command):
         index = incoming_buffer.index("\0")
         message = incoming_buffer[0:index-1]
         incoming_buffer = incoming_buffer[index+1:]
+
     # info message
     logging.info("message received: " + str(message))
 
-    # split message into lines for easier handle
+    # split message into lines to handle them easier
     lines = message.split("\n")
     fields = lines[0].split()
     command = fields[0]
 
     if command == "HELLO":
-        # checks if there is a username after the command or not
+        # check if there is a username after the command
         if len(fields) == 1:
             configuration["username_offset"] += 1
             json_save(configuration_file, configuration)
 
             # create available username for the new client
             username = "u{}".format(configuration["username_offset"])
+
             # send answer to client and call converse recursively
             send_message(connection, "AVAILABLE " + username + "\n\0")
             return converse(connection, client, incoming_buffer, "AVAILABLE")
         else:
             username = fields[1]
             if username in clients:
-                # save username at dictionary
+                # tie the client connection tuple with its username
                 connected_clients[client] = username
                 logging.debug("connected_clients: " + str(connected_clients))
 
@@ -90,19 +94,20 @@ def converse(connection, client, incoming_buffer, own_previous_command):
                 send_message(connection, "WELCOME " + username + "\n\0")
                 return converse(connection, client, incoming_buffer, "WELCOME")
             else:
-                # otherwise send ERROR to client, dont need recursion here cause
-                # we dont wait for an incoming command from the client
+                # otherwise send ERROR to client, don't need recursion here
+                # because we don't wait for an incoming command from the client
                 send_message(connection, "ERROR\n\0")
                 return incoming_buffer, "ERROR"
 
     elif command == "IWANT":
         username = fields[1]
-        # checks if username is valid
+        # check if the username is valid
         if username in clients:
             configuration["username_offset"] += 1
             json_save(configuration_file, configuration)
 
             username = "u{}".format(configuration["username_offset"])
+
             # send answer to client and call converse recursively
             send_message(connection, "AVAILABLE " + username + "\n\0")
             return converse(connection, client, incoming_buffer, "AVAILABLE")
@@ -114,17 +119,17 @@ def converse(connection, client, incoming_buffer, own_previous_command):
 
             connected_clients[client] = username
             logging.debug("connected_clients: " + str(connected_clients))
+
             # send answer to client
             send_message(connection, "WELCOME " + username + "\n\0")
-
             return incoming_buffer, "WELCOME"
 
     elif command == "LISTENING":
         clients[connected_clients[client]]["listening_ip"] = fields[1]
         clients[connected_clients[client]]["listening_port"] = fields[2]
         json_save(clients_file, clients)
-
         logging.debug("clients: " + str(clients))
+
         # send answer to client
         send_message(connection, "OK\n\0")
         return incoming_buffer, "OK"
@@ -133,6 +138,7 @@ def converse(connection, client, incoming_buffer, own_previous_command):
         number_of_files = int(fields[1])
         if number_of_files != (len(lines) - 1):
             logging.warning("invalid LIST message, wrong number of files")
+
             send_message(connection, "ERROR\n\0")
             sys.exit(-1)
         else:
@@ -151,17 +157,17 @@ def converse(connection, client, incoming_buffer, own_previous_command):
         for client_ in clients:
             for file_ in clients[client_]["files"]:
                 fulllist_message += client_ + " " + file_ + "\n"
-
         fulllist_message += "\0"
+
         # sends list of clients and their files to the client that requested them
         send_message(connection, fulllist_message)
-
         return converse(connection, client, incoming_buffer, "FULLLIST")
 
     elif command == "WHERE":
         peer = fields[1]
-        # searche for peer client in our dictionary
-        # if valid, we sent to client the ip and port of him
+
+        # search for the peer in the clients dictionary.
+        # if valid, we sent to client the ip and port of the peer.
         if peer in clients:
             # get from dictionary ip and port
             peer_ip = clients[peer]["listening_ip"]
@@ -170,6 +176,7 @@ def converse(connection, client, incoming_buffer, own_previous_command):
             # send message to client with ip and port of the client that
             # he wants to connect
             at_message = "AT {} {}\n\0".format(peer_ip, peer_port)
+
             send_message(connection, at_message)
             return incoming_buffer, "WHERE"
         else:
@@ -186,7 +193,8 @@ def converse(connection, client, incoming_buffer, own_previous_command):
         logging.warning('an invalid command was received: "{}"'.format(command))
         sys.exit(-1)
 
-# Receives messages and calls function converse to handle them
+
+# receive messages and call the converse function to handle them
 def client_function(connection, address):
     """
     connection : connection socket
@@ -213,27 +221,30 @@ def main():
     global clients_file
     global clients
 
+    # logging configuration
     logging.basicConfig(level=logging.DEBUG,
             format="[%(levelname)s] (%(threadName)s) %(message)s",
             filename="server.log",
             filemode="w")
     console = logging.StreamHandler()
     if DEBUG:
-        # Debug message
+        # set the console logging level to debug
         console.setLevel(logging.DEBUG)
     else:
-        # info message
+        # set the console logging level to info
         console.setLevel(logging.INFO)
     formatter = logging.Formatter("[%(levelname)s] (%(threadName)s) %(message)s")
     console.setFormatter(formatter)
     logging.getLogger("").addHandler(console)
-    # create json files to save dictionaries
+
     configuration_file = "configuration.json"
     clients_file = "clients.json"
-    # load from json file if exists, else create and initialize it
+
     if os.path.isfile(configuration_file):
+        # load the configuration from the json file
         configuration = json_load(configuration_file)
     else:
+        # create and initialize the configuration file
         configuration["host"] = "localhost"
         configuration["port"] = 45000
         configuration["username_offset"] = 0
@@ -241,7 +252,7 @@ def main():
 
     logging.debug("configuration: " + str(configuration))
 
-    # load list of clients from data base(json file) and save
+    # load the list of known clients from the json file
     if os.path.isfile(clients_file):
         clients = json_load(clients_file)
     else:
@@ -262,11 +273,13 @@ def main():
     try:
         server_socket.bind( (host, port) )
     except socket.error:
+        # cli_output
         logging.error("port {} in use, exiting".format(port))
         sys.exit(-1)
 
     # listen for incoming connections
     server_socket.listen(5)
+    # cli_output
     # output message
     logging.info("server listening on {}:{}".format(host, str(port)))
 
@@ -274,13 +287,16 @@ def main():
     client_counter = 0
     while True:
         connection, address = server_socket.accept()
+        # cli_output
         # output message
         logging.info("a client connected from {}:{}".format(address[0], str(address[1])))
 
-        # create thread and call client_function throught it
+        # create a thread that runs the client_function
         client_thread = Thread(name="client {}".format(client_counter),
                 target=client_function, args=(connection, address))
 
+        # TODO
+        # handle differently, terminate gracefully
         client_thread.daemon = True
         client_thread.start()
 

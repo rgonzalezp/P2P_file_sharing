@@ -23,8 +23,8 @@ from library.library import json_save
 from library.library import send_message
 
 
-DEBUG = True
-#DEBUG = False
+#DEBUG = True
+DEBUG = False
 
 
 configuration_file = ""
@@ -33,7 +33,8 @@ share_directory = ""
 full_list_of_files = []
 requested_file = ""
 
-# handle ctrl-c signal
+
+# handle keyboard interrupts (CTRL-C)
 def sigint_handler(signal, frame):
     # cli_output
     print()
@@ -43,13 +44,14 @@ def sigint_handler(signal, frame):
 
 signal.signal(signal.SIGINT, sigint_handler)
 
-# main recursive function used communication (client-server)
+
+# main recursive function used for communication of the client with the server
 def converse(server, incoming_buffer, own_previous_command):
     global configuration
     global full_list_of_files
     global requested_file
 
-# parse message
+    # parse message
     if "\0" not in incoming_buffer:
         incoming_buffer += server.recv(4096)
         return converse(server, incoming_buffer, own_previous_command)
@@ -64,7 +66,7 @@ def converse(server, incoming_buffer, own_previous_command):
     fields = lines[0].split()
     command = fields[0]
 
-# protocol messages and answers
+    # protocol messages and answers
     if command == "AVAILABLE":
         username = fields[1]
         username = get_name(username)
@@ -117,7 +119,8 @@ def converse(server, incoming_buffer, own_previous_command):
         logging.warning('an invalid command was received: "{}"'.format(command))
         sys.exit(-1)
 
-# make the sockets and establish the connection
+
+# create a socket and establish a connection
 def connection_init(address):
     ip, port = address
 
@@ -127,23 +130,19 @@ def connection_init(address):
         logging.error("socket.socket error")
         sys.exit(-1)
 
-    # TODO
-    # replace with the equivalent code without using an offset
-    while True:
-        try:
-            connection.connect( (ip, port) )
-            # cli_output
-            logging.info("connected to server or peer {}:{}".format(ip, port))
-            break
-        except socket.error:
-            # TODO
-            # this will be an error in production, i.e. the port must be specific
-            logging.debug("failed to connect to port {}, trying the next one".format(port))
-            port += 1
+    try:
+        connection.connect( (ip, port) )
+        # cli_output
+        logging.info("connected to server or peer {}:{}".format(ip, port))
+    except socket.error:
+        # cli_output
+        logging.debug("failed to connect to port {}, exiting".format(port))
+        sys.exit(-1)
 
     return connection
 
-# get username from the user
+
+# get a username from the user
 def get_name(username_):
     # cli_output
     print('Specify a username (press enter for the default "{}"): '.format(username_))
@@ -154,7 +153,8 @@ def get_name(username_):
 
     return username
 
-# peer to peer connection with anorther client
+
+# connect to a peer
 def peer_function(connection, address):
     """
     connection : connection socket
@@ -165,7 +165,7 @@ def peer_function(connection, address):
     incoming_buffer = ""
 
     while True:
-        # parse message received
+        # parse message
         while "\0" not in incoming_buffer:
             incoming_buffer += connection.recv(4096)
 
@@ -177,7 +177,7 @@ def peer_function(connection, address):
 
         fields = message.split()
         command = fields[0]
-        # reveive protocol messsages and answer
+        # handle and respond to the message
         if command == "GIVE":
             file_ = share_directory + "/" + fields[1]
 
@@ -216,7 +216,8 @@ def peer_function(connection, address):
 
     return
 
-#make the socket and establish listening connection
+
+# create a server socket and start listening for incoming connections
 def listen(listening_ip, listening_port, queue):
     try:
         listening_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -257,7 +258,8 @@ def listen(listening_ip, listening_port, queue):
 
         peer_counter += 1
 
-# function for the "TAKE" message
+
+# handle file requests and transfers
 def give_me(peer):
     global requested_file
 
@@ -269,7 +271,8 @@ def give_me(peer):
     send_message(peer, "GIVE {}\n\0".format(requested_file))
 
     incoming_buffer = ""
-    # parse message and answer
+
+    # parse message
     while "\0" not in incoming_buffer:
         incoming_buffer += peer.recv(4096)
 
@@ -281,7 +284,7 @@ def give_me(peer):
 
     fields = message.split()
     command = fields[0]
-    # reveive protocol messsages and answer
+
     if command == "TAKE":
         file_size = fields[1]
 
@@ -296,7 +299,7 @@ def give_me(peer):
         file_to_save.write(incoming_buffer)
         file_to_save.close()
 
-        logging.info("file {} received".format(file_to_save))
+        logging.info("file {} received".format(requested_file))
         send_message(peer, "THANKS\n\0")
         peer.close()
 
@@ -315,27 +318,30 @@ def main():
     global configuration_file
     global full_list_of_files
     global share_directory
-# DEBUF messages
+
+    # logging configuration
     logging.basicConfig(level=logging.DEBUG,
             format="[%(levelname)s] (%(threadName)s) %(message)s",
             filename="client.log",
             filemode="w")
     console = logging.StreamHandler()
     if DEBUG:
+        # set the console logging level to debug
         console.setLevel(logging.DEBUG)
     else:
+        # set the console logging level to info
         console.setLevel(logging.INFO)
     formatter = logging.Formatter("[%(levelname)s] (%(threadName)s) %(message)s")
     console.setFormatter(formatter)
     logging.getLogger("").addHandler(console)
 
-# we use a .json file to save configurations
     configuration_file = "configuration.json"
-# load file
+
     if os.path.isfile(configuration_file):
+        # load the configuration from the json file
         configuration = json_load(configuration_file)
     else:
-#
+        # create and initialize the configuration file
         configuration["server_host"] = "localhost"
         configuration["server_port"] = 45000
         configuration["listening_ip"] = "localhost"
