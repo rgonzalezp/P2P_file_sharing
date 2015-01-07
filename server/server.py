@@ -167,7 +167,7 @@ def converse(connection, client, incoming_buffer, own_previous_command):
             peer_ip = clients[peer]["listening_ip"]
             peer_port = clients[peer]["listening_port"]
 
-            # send message to client with ip and port of the client that 
+            # send message to client with ip and port of the client that
             # he wants to connect
             at_message = "AT {} {}\n\0".format(peer_ip, peer_port)
             send_message(connection, at_message)

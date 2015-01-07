@@ -154,7 +154,7 @@ def get_name(username_):
 
     return username
 
-# peer to peer connection with anorther client 
+# peer to peer connection with anorther client
 def peer_function(connection, address):
     """
     connection : connection socket
@@ -165,7 +165,7 @@ def peer_function(connection, address):
     incoming_buffer = ""
 
     while True:
-		# parse message received
+        # parse message received
         while "\0" not in incoming_buffer:
             incoming_buffer += connection.recv(4096)
 
@@ -177,7 +177,7 @@ def peer_function(connection, address):
 
         fields = message.split()
         command = fields[0]
-		# reveive protocol messsages and answer
+        # reveive protocol messsages and answer
         if command == "GIVE":
             file_ = share_directory + "/" + fields[1]
 
@@ -216,7 +216,7 @@ def peer_function(connection, address):
 
     return
 
-#make the socket and establish listening connection 
+#make the socket and establish listening connection
 def listen(listening_ip, listening_port, queue):
     try:
         listening_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -269,7 +269,7 @@ def give_me(peer):
     send_message(peer, "GIVE {}\n\0".format(requested_file))
 
     incoming_buffer = ""
-	# parse message and answer
+    # parse message and answer
     while "\0" not in incoming_buffer:
         incoming_buffer += peer.recv(4096)
 
@@ -281,7 +281,7 @@ def give_me(peer):
 
     fields = message.split()
     command = fields[0]
-	# reveive protocol messsages and answer
+    # reveive protocol messsages and answer
     if command == "TAKE":
         file_size = fields[1]
 
