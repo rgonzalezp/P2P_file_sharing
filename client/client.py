@@ -33,7 +33,7 @@ share_directory = ""
 full_list_of_files = []
 requested_file = ""
 
-
+# handle ctrl-c signal
 def sigint_handler(signal, frame):
     # cli_output
     print()
@@ -43,12 +43,13 @@ def sigint_handler(signal, frame):
 
 signal.signal(signal.SIGINT, sigint_handler)
 
-
+# main recursive function used communication (client-server)
 def converse(server, incoming_buffer, own_previous_command):
     global configuration
     global full_list_of_files
     global requested_file
 
+# parse message
     if "\0" not in incoming_buffer:
         incoming_buffer += server.recv(4096)
         return converse(server, incoming_buffer, own_previous_command)
@@ -63,6 +64,7 @@ def converse(server, incoming_buffer, own_previous_command):
     fields = lines[0].split()
     command = fields[0]
 
+# protocol messages and answers
     if command == "AVAILABLE":
         username = fields[1]
         username = get_name(username)
@@ -115,7 +117,7 @@ def converse(server, incoming_buffer, own_previous_command):
         logging.warning('an invalid command was received: "{}"'.format(command))
         sys.exit(-1)
 
-
+# make the sockets and establish the connection
 def connection_init(address):
     ip, port = address
 
@@ -141,7 +143,7 @@ def connection_init(address):
 
     return connection
 
-
+# get username from the user
 def get_name(username_):
     # cli_output
     print('Specify a username (press enter for the default "{}"): '.format(username_))
@@ -152,7 +154,7 @@ def get_name(username_):
 
     return username
 
-
+# peer to peer connection with anorther client 
 def peer_function(connection, address):
     """
     connection : connection socket
@@ -163,6 +165,7 @@ def peer_function(connection, address):
     incoming_buffer = ""
 
     while True:
+		# parse message received
         while "\0" not in incoming_buffer:
             incoming_buffer += connection.recv(4096)
 
@@ -174,7 +177,7 @@ def peer_function(connection, address):
 
         fields = message.split()
         command = fields[0]
-
+		# reveive protocol messsages and answer
         if command == "GIVE":
             file_ = share_directory + "/" + fields[1]
 
@@ -213,7 +216,7 @@ def peer_function(connection, address):
 
     return
 
-
+#make the socket and establish listening connection 
 def listen(listening_ip, listening_port, queue):
     try:
         listening_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -254,7 +257,7 @@ def listen(listening_ip, listening_port, queue):
 
         peer_counter += 1
 
-
+# function for the "TAKE" message
 def give_me(peer):
     global requested_file
 
@@ -266,7 +269,7 @@ def give_me(peer):
     send_message(peer, "GIVE {}\n\0".format(requested_file))
 
     incoming_buffer = ""
-
+	# parse message and answer
     while "\0" not in incoming_buffer:
         incoming_buffer += peer.recv(4096)
 
@@ -278,7 +281,7 @@ def give_me(peer):
 
     fields = message.split()
     command = fields[0]
-
+	# reveive protocol messsages and answer
     if command == "TAKE":
         file_size = fields[1]
 
@@ -312,7 +315,7 @@ def main():
     global configuration_file
     global full_list_of_files
     global share_directory
-
+# DEBUF messages
     logging.basicConfig(level=logging.DEBUG,
             format="[%(levelname)s] (%(threadName)s) %(message)s",
             filename="client.log",
@@ -326,12 +329,13 @@ def main():
     console.setFormatter(formatter)
     logging.getLogger("").addHandler(console)
 
-
+# we use a .json file to save configurations
     configuration_file = "configuration.json"
-
+# load file
     if os.path.isfile(configuration_file):
         configuration = json_load(configuration_file)
     else:
+#
         configuration["server_host"] = "localhost"
         configuration["server_port"] = 45000
         configuration["listening_ip"] = "localhost"
