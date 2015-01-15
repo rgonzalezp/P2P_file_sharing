@@ -34,8 +34,11 @@ full_list_of_files = []
 requested_file = ""
 
 
-# handle keyboard interrupts (CTRL-C)
 def sigint_handler(signal, frame):
+    """
+    handle keyboard interrupts (CTRL-C)
+    """
+
     # cli_output
     print()
     logging.info("CTRL-C received, exiting")
@@ -45,8 +48,11 @@ def sigint_handler(signal, frame):
 signal.signal(signal.SIGINT, sigint_handler)
 
 
-# main recursive function used for communication of the client with the server
 def converse(server, incoming_buffer, own_previous_command):
+    """
+    main recursive function used for communication of the client with the server
+    """
+
     global configuration
     global full_list_of_files
     global requested_file
@@ -120,8 +126,11 @@ def converse(server, incoming_buffer, own_previous_command):
         sys.exit(-1)
 
 
-# create a socket and establish a connection
 def connection_init(address):
+    """
+    create a socket and establish a connection
+    """
+
     ip, port = address
 
     try:
@@ -142,8 +151,11 @@ def connection_init(address):
     return connection
 
 
-# get a username from the user
 def get_name(username_):
+    """
+    get a username from the user
+    """
+
     # cli_output
     print('Specify a username (press enter for the default "{}"): '.format(username_))
     username = raw_input()
@@ -154,9 +166,10 @@ def get_name(username_):
     return username
 
 
-# connect to a peer
 def peer_function(connection, address):
     """
+    connect to a peer
+
     connection : connection socket
     address : (IP_address, port)
     """
@@ -217,8 +230,11 @@ def peer_function(connection, address):
     return
 
 
-# create a server socket and start listening for incoming connections
 def listen(listening_ip, listening_port, queue):
+    """
+    create a server socket and start listening for incoming connections
+    """
+
     try:
         listening_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     except socket.error:
@@ -259,8 +275,11 @@ def listen(listening_ip, listening_port, queue):
         peer_counter += 1
 
 
-# handle file requests and transfers
 def give_me(peer):
+    """
+    handle file requests and transfers
+    """
+
     global requested_file
 
     # cli_output

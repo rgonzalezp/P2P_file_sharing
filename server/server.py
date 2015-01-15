@@ -37,8 +37,11 @@ clients = {}
 connected_clients = {}
 
 
-# handle keyboard interrupts (CTRL-C)
 def sigint_handler(signal, frame):
+    """
+    handle keyboard interrupts (CTRL-C)
+    """
+
     # cli_output
     print()
     logging.info("CTRL-C received, exiting")
@@ -48,8 +51,11 @@ def sigint_handler(signal, frame):
 signal.signal(signal.SIGINT, sigint_handler)
 
 
-# handle messages, uses recursion if there are more incoming commands
 def converse(connection, client, incoming_buffer, own_previous_command):
+    """
+    handle messages, uses recursion if there are more incoming commands
+    """
+
     global configuration_file
     global configuration
     global clients_file
@@ -194,9 +200,10 @@ def converse(connection, client, incoming_buffer, own_previous_command):
         sys.exit(-1)
 
 
-# receive messages and call the converse function to handle them
 def client_function(connection, address):
     """
+    receive messages and call the converse function to handle them
+
     connection : connection socket
     address : (IP_address, port)
     """
