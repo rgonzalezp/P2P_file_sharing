@@ -18,6 +18,7 @@ import sys
 import Queue
 from threading import Thread
 
+from library.library import sigint_handler
 from library.library import json_load
 from library.library import json_save
 from library.library import send_message
@@ -32,17 +33,6 @@ configuration = {}
 sharing_directory = ""
 full_list_of_files = []
 requested_file = ""
-
-
-def sigint_handler(signal, frame):
-    """
-    handle keyboard interrupts (CTRL-C)
-    """
-
-    # cli_output
-    print()
-    logging.info("CTRL-C received, exiting")
-    sys.exit(0)
 
 
 signal.signal(signal.SIGINT, sigint_handler)

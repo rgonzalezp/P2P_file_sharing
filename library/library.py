@@ -16,6 +16,17 @@ import json
 import socket
 
 
+def sigint_handler(signal, frame):
+    """
+    handle keyboard interrupts (CTRL-C)
+    """
+
+    # cli_output
+    print()
+    logging.info("CTRL-C received, exiting")
+    sys.exit(0)
+
+
 def send_message(connection, message):
     try:
         connection.sendall(message)
