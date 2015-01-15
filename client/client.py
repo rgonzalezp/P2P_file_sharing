@@ -29,7 +29,7 @@ DEBUG = False
 
 configuration_file = ""
 configuration = {}
-share_directory = ""
+sharing_directory = ""
 full_list_of_files = []
 requested_file = ""
 
@@ -166,6 +166,25 @@ def get_name(username_):
     return username
 
 
+def get_sharing_directory():
+    """
+    get the sharing directory from the user
+    """
+
+    sharing_directory = ""
+
+    while not os.path.isdir(sharing_directory):
+        # cli_output
+        print()
+        print("Enter the directory to share:")
+        sharing_directory = raw_input()
+
+        if not os.path.isdir(sharing_directory):
+            print(""""{}" doesn't seem like a valid directory, try again""".format(sharing_directory))
+
+    return sharing_directory
+
+
 def peer_function(connection, address):
     """
     connect to a peer
@@ -173,7 +192,7 @@ def peer_function(connection, address):
     connection : connection socket
     address : (IP_address, port)
     """
-    global share_directory
+    global sharing_directory
 
     incoming_buffer = ""
 
@@ -192,7 +211,7 @@ def peer_function(connection, address):
         command = fields[0]
         # handle and respond to the message
         if command == "GIVE":
-            file_ = share_directory + "/" + fields[1]
+            file_ = sharing_directory + "/" + fields[1]
 
             if os.path.isfile(file_):
                 # get the file size
@@ -314,7 +333,7 @@ def give_me(peer):
             # TODO
             # save the file chunk by chunk
 
-        file_to_save = open(share_directory + "/" + requested_file, "wb")
+        file_to_save = open(sharing_directory + "/" + requested_file, "wb")
         file_to_save.write(incoming_buffer)
         file_to_save.close()
 
@@ -337,7 +356,7 @@ def main():
     global configuration
     global configuration_file
     global full_list_of_files
-    global share_directory
+    global sharing_directory
 
     # logging configuration
     logging.basicConfig(level=logging.DEBUG,
@@ -367,20 +386,14 @@ def main():
         configuration["listening_ip"] = "localhost"
         configuration["listening_port"] = 0
 
-        # get the path to the share directory from the user
-        while not os.path.isdir(share_directory):
-            # cli_output
-            print()
-            print("enter the directory to share:")
-            share_directory = raw_input()
-        configuration["share_directory"] = share_directory
+        configuration["sharing_directory"] = get_sharing_directory()
 
         json_save(configuration_file, configuration)
 
     logging.debug("configuration: " + str(configuration))
 
-    share_directory = configuration["share_directory"]
-    files_list = [ file_ for file_ in os.listdir(share_directory) if os.path.isfile(os.path.join(share_directory, file_)) ]
+    sharing_directory = configuration["sharing_directory"]
+    files_list = [ file_ for file_ in os.listdir(sharing_directory) if os.path.isfile(os.path.join(sharing_directory, file_)) ]
 
     logging.debug("files_list: " + str(files_list))
 
@@ -448,17 +461,18 @@ def main():
     while True:
         print()
         print("options:")
-        print("1: SENDLIST / s : request the list of clients and shared files")
-        print("2: WHERE / w : request the IP address and port of the specified client")
-        print("5: QUIT / q : exit the program")
+        print("1: SENDLIST : request the list of clients and shared files")
+        print("2: WHERE : request the IP address and port of the specified client")
+        print("4: SHARE : specify the sharing directory")
+        print("5: QUIT : exit the program")
 
         option = raw_input()
-        if option in ["1", "s", "S", "sendlist", "SENDLIST"]:
+        if option in ["1", "sendlist", "SENDLIST"]:
             send_message(server, "SENDLIST " + "\n\0")
 
             converse(server, incoming_buffer, "SENDLIST")
 
-        elif option in ["2", "w", "W", "where", "WHERE"]:
+        elif option in ["2", "where", "WHERE"]:
             print("Enter the username of the client:")
 
             while True:
@@ -481,7 +495,11 @@ def main():
 
             give_me(peer)
 
-        elif option in ["5", "q", "Q", "quit", "QUIT"]:
+        elif option in ["4", "share", "SHARE"]:
+            configuration["sharing_directory"] = get_sharing_directory()
+            json_save(configuration_file, configuration)
+
+        elif option in ["5", "quit", "QUIT"]:
             sys.exit(0)
 
         else:
