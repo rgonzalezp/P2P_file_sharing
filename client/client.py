@@ -136,7 +136,7 @@ def connection_init(address):
         logging.info("connected to server or peer {}:{}".format(ip, port))
     except socket.error:
         # cli_output
-        logging.debug("failed to connect to port {}, exiting".format(port))
+        logging.info("failed to connect to port {}, exiting".format(port))
         sys.exit(-1)
 
     return connection
@@ -347,7 +347,15 @@ def main():
         configuration["server_port"] = 45000
         configuration["listening_ip"] = "localhost"
         configuration["listening_port"] = 0
-        configuration["share_directory"] = "share"
+
+        # get the path to the share directory from the user
+        while not os.path.isdir(share_directory):
+            # cli_output
+            print()
+            print("enter the directory to share:")
+            share_directory = raw_input()
+        configuration["share_directory"] = share_directory
+
         json_save(configuration_file, configuration)
 
     logging.debug("configuration: " + str(configuration))
