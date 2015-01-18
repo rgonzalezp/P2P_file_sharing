@@ -24,8 +24,6 @@ reset_client:
 	rm -f client/client.log
 
 
-# remove Python bytecode, JSON, and log files
+# remove Python bytecode files
 clean:
 	find . -type f -name "*.pyc" -exec rm -vf {} \;
-	find . -type f -name "*.json" -exec rm -vf {} \;
-	find . -type f -name "*.log" -exec rm -vf {} \;
