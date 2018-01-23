@@ -1,5 +1,6 @@
-dpdgsp: a P2P file sharing application with a centralized server
+P2P file sharing
 ===
+A Python P2P file sharing application with a server coordinator.
 
 Dimitrios Paraschas
 1562
