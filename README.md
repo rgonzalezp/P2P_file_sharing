@@ -1,6 +1,6 @@
 P2P file sharing
 ===
-A Python P2P file sharing application with a server coordinator.
+A Python P2P file sharing application with a server coordinator utilizing a protocol design.
 
 Dimitrios Paraschas
 1562
