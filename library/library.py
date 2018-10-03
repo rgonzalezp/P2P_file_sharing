@@ -15,7 +15,6 @@ import logging
 import json
 import socket
 
-
 def sigint_handler(signal, frame):
     """
     handle keyboard interrupts (CTRL-C)

@@ -22,7 +22,6 @@ from library.library import json_load
 from library.library import json_save
 from library.library import send_message
 
-
 #DEBUG = True
 DEBUG = False
 
